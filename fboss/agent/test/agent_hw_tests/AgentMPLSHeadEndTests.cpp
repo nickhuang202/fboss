@@ -407,4 +407,16 @@ TYPED_TEST(AgentMPLSHeadEndTest, PushLabel) {
   this->verifyAcrossWarmBoots(setup, verify);
 }
 
+TYPED_TEST(AgentMPLSHeadEndTest, PushMaxLabelStack) {
+  auto setup = [this]() {
+    this->setupStaticIp2MplsRoutePush(this->maxPushedLabelStack());
+  };
+
+  auto verify = [this]() {
+    this->verifyIp2MplsPush(this->maxPushedLabelStack());
+  };
+
+  this->verifyAcrossWarmBoots(setup, verify);
+}
+
 } // namespace facebook::fboss
