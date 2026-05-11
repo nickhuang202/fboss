@@ -169,6 +169,19 @@ class AgentMPLSMidpointTest : public AgentHwTest {
     return pushStack.back();
   }
 
+  LabelForwardingAction::LabelStack maxPushedLabelStack() const {
+    auto asic = checkSameAndGetAsicForTesting(getAgentEnsemble()->getL3Asics());
+    auto depth = asic->getMaxLabelStackDepth();
+    CHECK_GT(depth, 0);
+
+    LabelForwardingAction::LabelStack stack;
+    stack.reserve(depth);
+    for (uint32_t i = 0; i < depth; ++i) {
+      stack.push_back(1001 + i);
+    }
+    return stack;
+  }
+
   folly::MacAddress routerMac() const {
     return getMacForFirstInterfaceWithPortsForTesting(getProgrammedState());
   }
@@ -513,6 +526,34 @@ TYPED_TEST(AgentMPLSMidpointTest, StaticMplsRoutePush) {
       for (auto injectionType : kInjectionTypes) {
         this->verifyMplsPushAndTrapPacket(
             ipVersion, injectionType, kSinglePushedLabelStack);
+      }
+    }
+  };
+
+  this->verifyAcrossWarmBoots(setup, verify);
+}
+
+// StaticMplsRoutePushMaxLabelStack verifies that midpoint PUSH can impose the
+// maximum label depth reported by the ASIC and that the captured packet carries
+// the full stack in wire/top-first order.
+TYPED_TEST(AgentMPLSMidpointTest, StaticMplsRoutePushMaxLabelStack) {
+  auto setup = [this]() {
+    this->setupStaticMplsRoutePush(this->maxPushedLabelStack());
+  };
+
+  auto verify = [this]() {
+    auto pushStack = this->maxPushedLabelStack();
+    constexpr std::array kIpVersions{
+        MplsPayloadIpVersion::V4,
+        MplsPayloadIpVersion::V6,
+    };
+    constexpr std::array kInjectionTypes{
+        MplsPacketInjectionType::FrontPanel,
+        MplsPacketInjectionType::Cpu,
+    };
+    for (auto ipVersion : kIpVersions) {
+      for (auto injectionType : kInjectionTypes) {
+        this->verifyMplsPushAndTrapPacket(ipVersion, injectionType, pushStack);
       }
     }
   };
