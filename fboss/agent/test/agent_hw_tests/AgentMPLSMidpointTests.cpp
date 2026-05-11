@@ -35,6 +35,9 @@
 namespace {
 
 namespace mpls_test = facebook::fboss::utility::mpls_dataplane_test;
+using mpls_test::MplsIpVersion;
+using mpls_test::MplsPacketInjectionType;
+using mpls_test::MplsTrapPacketMechanism;
 
 const facebook::fboss::Label kTopLabel{1101};
 const facebook::fboss::LabelForwardingAction::Label kSwapLabel{201};
@@ -44,48 +47,6 @@ constexpr uint32_t kMaxPushedLabelBase = 1001;
 
 using MplsMidpointPortTypes =
     ::testing::Types<facebook::fboss::PortID, facebook::fboss::AggregatePortID>;
-
-enum class MplsPayloadIpVersion {
-  V4,
-  V6,
-};
-
-enum class MplsPacketInjectionType {
-  FrontPanel,
-  Cpu,
-};
-
-enum class MplsTrapPacketMechanism {
-  SrcPortAcl,
-  TtlExpiry,
-};
-
-const char* name(MplsPayloadIpVersion ipVersion) {
-  switch (ipVersion) {
-    case MplsPayloadIpVersion::V4:
-      return "IPv4";
-    case MplsPayloadIpVersion::V6:
-      return "IPv6";
-  }
-}
-
-const char* name(MplsPacketInjectionType injectionType) {
-  switch (injectionType) {
-    case MplsPacketInjectionType::FrontPanel:
-      return "front-panel";
-    case MplsPacketInjectionType::Cpu:
-      return "cpu";
-  }
-}
-
-const char* name(MplsTrapPacketMechanism mechanism) {
-  switch (mechanism) {
-    case MplsTrapPacketMechanism::SrcPortAcl:
-      return "src-port-acl";
-    case MplsTrapPacketMechanism::TtlExpiry:
-      return "ttl-expiry";
-  }
-}
 
 } // namespace
 
@@ -305,14 +266,14 @@ class AgentMPLSMidpointTest : public AgentHwTest {
   std::unique_ptr<TxPacket> makeMplsIngressPacket(
       Label label,
       uint8_t ttl,
-      MplsPayloadIpVersion ipVersion) const {
+      MplsIpVersion ipVersion) const {
     auto vlan = getVlanIDForTx();
     CHECK(vlan.has_value());
 
     MPLSHdr::Label mplsLabel{
         static_cast<uint32_t>(label.value()), 0, true, ttl};
     std::unique_ptr<TxPacket> pkt;
-    if (ipVersion == MplsPayloadIpVersion::V4) {
+    if (ipVersion == MplsIpVersion::V4) {
       auto frame = utility::getEthFrame(
           utility::kLocalCpuMac(),
           utility::kLocalCpuMac(),
@@ -343,7 +304,7 @@ class AgentMPLSMidpointTest : public AgentHwTest {
   void sendMplsIngressPacket(
       Label label,
       uint8_t ttl,
-      MplsPayloadIpVersion ipVersion,
+      MplsIpVersion ipVersion,
       MplsPacketInjectionType injectionType) {
     auto pkt = makeMplsIngressPacket(label, ttl, ipVersion);
     switch (injectionType) {
@@ -400,18 +361,18 @@ class AgentMPLSMidpointTest : public AgentHwTest {
   }
 
   void verifyMplsPushAndTrapPacket(
-      MplsPayloadIpVersion ipVersion,
+      MplsIpVersion ipVersion,
       MplsPacketInjectionType injectionType,
       const LabelForwardingAction::LabelStack& expectedPushStack) {
     auto mechanism = trapPacketMechanism();
     SCOPED_TRACE(
         folly::to<std::string>(
             "ipVersion=",
-            name(ipVersion),
+            mpls_test::name(ipVersion),
             " injectionType=",
-            name(injectionType),
+            mpls_test::name(injectionType),
             " trapMechanism=",
-            name(mechanism),
+            mpls_test::name(mechanism),
             " isTrunk=",
             kIsTrunk));
 
@@ -493,8 +454,8 @@ TYPED_TEST(AgentMPLSMidpointTest, PushLabel) {
   auto verify = [this]() {
     auto pushStack = this->singlePushedLabelStack();
     constexpr std::array kIpVersions{
-        MplsPayloadIpVersion::V4,
-        MplsPayloadIpVersion::V6,
+        MplsIpVersion::V4,
+        MplsIpVersion::V6,
     };
     constexpr std::array kInjectionTypes{
         MplsPacketInjectionType::FrontPanel,
@@ -521,8 +482,8 @@ TYPED_TEST(AgentMPLSMidpointTest, PushMaxLabelStack) {
   auto verify = [this]() {
     auto pushStack = this->maxPushedLabelStack();
     constexpr std::array kIpVersions{
-        MplsPayloadIpVersion::V4,
-        MplsPayloadIpVersion::V6,
+        MplsIpVersion::V4,
+        MplsIpVersion::V6,
     };
     constexpr std::array kInjectionTypes{
         MplsPacketInjectionType::FrontPanel,
