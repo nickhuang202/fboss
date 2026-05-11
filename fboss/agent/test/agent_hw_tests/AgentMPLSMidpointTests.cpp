@@ -10,6 +10,9 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <vector>
+
+#include <fmt/ranges.h>
 
 #include "fboss/agent/AddressUtil.h"
 #include "fboss/agent/AgentFeatures.h"
@@ -338,6 +341,51 @@ class AgentMPLSMidpointTest : public AgentHwTest {
     }
   }
 
+  std::vector<uint32_t> expectedWireOrderLabelValues(
+      const LabelForwardingAction::LabelStack& expectedPushStack) const {
+    std::vector<uint32_t> labels;
+    labels.reserve(expectedPushStack.size());
+    // LabelForwardingAction push stack is programmed inner-to-outer, while the
+    // captured MPLS header stack is parsed outer-to-inner from the wire.
+    for (auto itr = expectedPushStack.rbegin(); itr != expectedPushStack.rend();
+         ++itr) {
+      labels.push_back(static_cast<uint32_t>(*itr));
+    }
+    return labels;
+  }
+
+  std::vector<uint32_t> capturedLabelValues(
+      const std::vector<MPLSHdr::Label>& labelStack) const {
+    std::vector<uint32_t> labels;
+    labels.reserve(labelStack.size());
+    for (const auto& label : labelStack) {
+      labels.push_back(label.getLabelValue());
+    }
+    return labels;
+  }
+
+  std::string labelValuesStr(const std::vector<uint32_t>& labels) const {
+    return fmt::format("[{}]", fmt::join(labels, ", "));
+  }
+
+  void verifyCapturedLabelStack(
+      const std::vector<MPLSHdr::Label>& labelStack,
+      const LabelForwardingAction::LabelStack& expectedPushStack) const {
+    ASSERT_EQ(labelStack.size(), expectedPushStack.size());
+
+    auto actualLabels = capturedLabelValues(labelStack);
+    auto expectedLabels = expectedWireOrderLabelValues(expectedPushStack);
+    XLOG(INFO) << "MPLS midpoint PUSH captured labels "
+               << labelValuesStr(actualLabels) << ", expected wire labels "
+               << labelValuesStr(expectedLabels);
+
+    EXPECT_EQ(actualLabels, expectedLabels);
+
+    for (size_t i = 0; i < labelStack.size(); ++i) {
+      EXPECT_EQ(labelStack[i].isbottomOfStack(), i + 1 == labelStack.size());
+    }
+  }
+
   void setupStaticMplsRoutePush(
       const LabelForwardingAction::LabelStack& pushStack) {
     auto mechanism = trapPacketMechanism();
@@ -428,11 +476,7 @@ class AgentMPLSMidpointTest : public AgentHwTest {
     const auto& labelStack = mplsHeader.stack();
     XLOG(INFO) << "MPLS midpoint PUSH captured header " << mplsHeader;
 
-    ASSERT_EQ(labelStack.size(), 1);
-    EXPECT_EQ(
-        labelStack[0].getLabelValue(),
-        static_cast<uint32_t>(pushedTopLabel(expectedPushStack).value()));
-    EXPECT_TRUE(labelStack[0].isbottomOfStack());
+    verifyCapturedLabelStack(labelStack, expectedPushStack);
   }
 };
 
