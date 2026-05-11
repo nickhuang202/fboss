@@ -60,6 +60,8 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
   using BaseT::getVlanIDForTx;
   using BaseT::ingressPort;
   using BaseT::initialConfig;
+  using BaseT::maxPushedLabelStack;
+  using BaseT::pushedLabelStack;
   using BaseT::pushedTopLabel;
   using BaseT::routerMac;
   using BaseT::secondPassEgressPort;
@@ -90,21 +92,12 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
         actionType);
   }
 
-  LabelForwardingAction::LabelStack pushedLabelStack(
-      uint32_t baseLabel,
-      uint32_t count) const {
-    CHECK_GT(count, 0);
-    return mpls_test::makeLabelStack(baseLabel, count);
-  }
-
   LabelForwardingAction::LabelStack singlePushedLabelStack() const {
     return pushedLabelStack(kSinglePushedLabelBase, 1);
   }
 
   LabelForwardingAction::LabelStack maxPushedLabelStack() const {
-    auto asic = checkSameAndGetAsicForTesting(getAgentEnsemble()->getL3Asics());
-    auto depth = asic->getMaxLabelStackDepth();
-    return pushedLabelStack(kMaxPushedLabelBase, depth);
+    return maxPushedLabelStack(kMaxPushedLabelBase);
   }
 
   void configureStaticMplsRoute(

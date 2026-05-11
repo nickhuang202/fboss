@@ -99,6 +99,20 @@ class AgentMPLSDataplaneTest : public AgentHwTest {
     return pushStack.back();
   }
 
+  LabelForwardingAction::LabelStack pushedLabelStack(
+      uint32_t baseLabel,
+      uint32_t count) const {
+    CHECK_GT(count, 0);
+    return utility::mpls_dataplane_test::makeLabelStack(baseLabel, count);
+  }
+
+  LabelForwardingAction::LabelStack maxPushedLabelStack(
+      uint32_t baseLabel) const {
+    auto asic =
+        checkSameAndGetAsicForTesting(this->getAgentEnsemble()->getL3Asics());
+    return pushedLabelStack(baseLabel, asic->getMaxLabelStackDepth());
+  }
+
   void verifyCapturedLabelStack(
       const std::vector<MPLSHdr::Label>& labelStack,
       const LabelForwardingAction::LabelStack& expectedPushStack) const {
@@ -156,10 +170,9 @@ class AgentMPLSDataplaneTest : public AgentHwTest {
     auto outPktsBefore =
         utility::getPortOutPkts(this->getLatestPortStats(egressPort()));
 
-    auto ttl = mechanism ==
-            utility::mpls_dataplane_test::MplsTrapPacketMechanism::TtlExpiry
-        ? 2
-        : 128;
+    auto trapOnTtlExpiry = mechanism ==
+        utility::mpls_dataplane_test::MplsTrapPacketMechanism::TtlExpiry;
+    auto ttl = trapOnTtlExpiry ? 2 : 128;
     sendPacket(ttl);
 
     WITH_RETRIES({
@@ -167,8 +180,7 @@ class AgentMPLSDataplaneTest : public AgentHwTest {
           utility::getPortOutPkts(this->getLatestPortStats(egressPort()));
       EXPECT_EVENTUALLY_EQ(1, outPktsAfter - outPktsBefore);
 
-      if (mechanism ==
-          utility::mpls_dataplane_test::MplsTrapPacketMechanism::TtlExpiry) {
+      if (trapOnTtlExpiry) {
         auto cpuQueueOutPktsAfter = utility::getQueueOutPacketsWithRetry(
             this->getSw(),
             this->switchIdForPort(egressPort()),
