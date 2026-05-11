@@ -203,6 +203,7 @@ cpp_library(
         "AgentLoadBalancerTests.cpp",
         "AgentLoopBackTests.cpp",
         "AgentMPLSDataplaneTestUtils.cpp",
+        "AgentMPLSHeadEndTests.cpp",
         "AgentMPLSMidpointTests.cpp",
         "AgentMPLSTests.cpp",
         "AgentMacLearningAndNeighborResolutionTests.cpp",
