@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,12 @@ class SensorServiceImpl {
       "sensor_read.has.alarm_threshold_violation";
   auto static constexpr kTotalPower = "TOTAL_POWER";
   auto static constexpr kMaxInputVoltage = "MAX_INPUT_VOLTAGE";
+  // Flat fb303 counters (NOT under derived.{}.value — these are observed
+  // and config-derived, not computed). The boolean fires when present
+  // count drops below the configured min for the detected power type.
+  auto static constexpr kTotalNumPresentPsu = "psu.total_num_present";
+  auto static constexpr kUnexpectedNumPresentPsu =
+      "psu.unexpected_num_present_psu";
   auto static constexpr kInputPowerType = "INPUT_POWER_TYPE";
   static constexpr int kInputPowerTypeUnknown = 0;
   static constexpr int kInputPowerTypeDC = 1;
@@ -63,6 +70,10 @@ class SensorServiceImpl {
       const std::shared_ptr<PlatformUtils>& platformUtils =
           std::make_shared<PlatformUtils>());
   ~SensorServiceImpl();
+
+  void setPmUnitInfoFetcherForTest(std::unique_ptr<PmUnitInfoFetcher> fetcher) {
+    pmUnitInfoFetcher_ = std::move(fetcher);
+  }
 
   std::vector<SensorData> getSensorsData(
       const std::vector<std::string>& sensorNames);
@@ -110,6 +121,11 @@ class SensorServiceImpl {
       int16_t productVersion,
       int16_t productSubVersion);
 
+  // Pre-fetches PmUnitInfo for every PmUnitSensors entry that declares
+  // versionedSensors so the version resolver gets one RPC per slot.
+  std::map<std::string, std::optional<platform_manager::PmUnitInfo>>
+  prefetchPmUnitInfos();
+
   folly::Synchronized<std::map<std::string, SensorData>> polledData_{};
   std::unique_ptr<FsdbSyncer> fsdbSyncer_;
   std::optional<std::chrono::time_point<std::chrono::steady_clock>>
@@ -118,7 +134,8 @@ class SensorServiceImpl {
   helpers::StructuredLogger structuredLogger_;
   std::shared_ptr<Utils> utils_{};
   std::shared_ptr<PlatformUtils> platformUtils_{};
-  PmUnitInfoFetcher pmUnitInfoFetcher_{};
+  std::unique_ptr<PmUnitInfoFetcher> pmUnitInfoFetcher_ =
+      std::make_unique<PmUnitInfoFetcher>();
   int inputPowerType_{kInputPowerTypeUnknown};
 };
 

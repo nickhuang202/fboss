@@ -32,6 +32,7 @@ target_include_directories(power_config_utils INTERFACE
 
 target_link_libraries(power_config_utils INTERFACE
   sensor_config_cpp2
+  ${RE2}
 )
 
 add_library(sensor_service_config_validator
@@ -78,6 +79,7 @@ target_link_libraries(sensor_service_lib
   platform_manager_config_validator
   platform_name_lib
   platform_utils
+  power_config_utils
   structured_logger
   sensor_service_utils
   sensor_service_cpp2

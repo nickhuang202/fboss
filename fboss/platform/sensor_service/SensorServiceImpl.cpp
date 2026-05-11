@@ -21,6 +21,7 @@
 #include "fboss/platform/sensor_service/SensorServiceImpl.h"
 #include "fboss/platform/sensor_service/Utils.h"
 #include "fboss/platform/sensor_service/gen-cpp2/sensor_service_stats_types.h"
+#include "fboss/platform/sensor_service/utilities/PowerConfigUtils.h"
 
 DEFINE_int32(
     fsdb_statsStream_interval_seconds,
@@ -99,10 +100,8 @@ std::map<std::string, SensorData> SensorServiceImpl::getAllSensorData() {
   return polledData_.copy();
 }
 
-void SensorServiceImpl::fetchSensorData() {
-  std::map<std::string, SensorData> polledData;
-
-  // Pre-fetch all PmUnit versions from PlatformManager
+std::map<std::string, std::optional<platform_manager::PmUnitInfo>>
+SensorServiceImpl::prefetchPmUnitInfos() {
   std::map<std::string, std::optional<platform_manager::PmUnitInfo>>
       pmUnitInfoMap;
   XLOG(INFO) << "Getting versions of PmUnits from PlatformManager";
@@ -114,7 +113,7 @@ void SensorServiceImpl::fetchSensorData() {
     if (pmUnitInfoMap.count(slotPath)) {
       continue;
     }
-    auto pmUnitInfo = pmUnitInfoFetcher_.fetch(slotPath);
+    auto pmUnitInfo = pmUnitInfoFetcher_->fetch(slotPath);
     pmUnitInfoMap[slotPath] = pmUnitInfo;
     if (pmUnitInfo && pmUnitInfo->version()) {
       XLOG(INFO) << fmt::format(
@@ -131,6 +130,13 @@ void SensorServiceImpl::fetchSensorData() {
           slotPath);
     }
   }
+  return pmUnitInfoMap;
+}
+
+void SensorServiceImpl::fetchSensorData() {
+  std::map<std::string, SensorData> polledData;
+
+  auto pmUnitInfoMap = prefetchPmUnitInfos();
 
   XLOG(INFO) << fmt::format(
       "Reading SensorData for {} PMUnits",
@@ -235,7 +241,7 @@ void SensorServiceImpl::fetchSensorData() {
 
 std::vector<PmSensor> SensorServiceImpl::resolveSensors(
     const PmUnitSensors& pmUnitSensors) {
-  auto pmUnitInfo = pmUnitInfoFetcher_.fetch(*pmUnitSensors.slotPath());
+  auto pmUnitInfo = pmUnitInfoFetcher_->fetch(*pmUnitSensors.slotPath());
   auto pmSensors = *pmUnitSensors.sensors();
   if (auto versionedPmSensors = utils_->resolveVersionedSensors(
           pmUnitInfo,
@@ -602,6 +608,40 @@ void SensorServiceImpl::processInputVoltage(
     }
   }
   publishDerivedStats(kInputPowerType, inputPowerType_);
+
+  if (hasPsuOrPem(powerConfig)) {
+    int presentCount = 0;
+    for (const auto& slot : *powerConfig.perSlotPowerConfigs()) {
+      if (!isPsuOrPem(slot)) {
+        continue;
+      }
+      auto slotPath = slot.slotPath().to_optional();
+      if (!slotPath) {
+        XLOG(WARN) << fmt::format(
+            "PSU/PEM {} has no slotPath configured; skipping presence check",
+            *slot.name());
+        continue;
+      }
+      auto pmUnitInfo = pmUnitInfoFetcher_->fetch(*slotPath);
+      if (pmUnitInfo && pmUnitInfo->presenceInfo() &&
+          *pmUnitInfo->presenceInfo()->isPresent()) {
+        ++presentCount;
+      }
+    }
+    fb303::fbData->setCounter(kTotalNumPresentPsu, presentCount);
+
+    // Skip alert when we can't pick a threshold (unknown power type or
+    // no min configured).
+    if (inputPowerType_ != kInputPowerTypeUnknown) {
+      int expectedMin = (inputPowerType_ == kInputPowerTypeAC)
+          ? *powerConfig.minAcPsuCount()
+          : *powerConfig.minDcPsuCount();
+      if (expectedMin > 0) {
+        fb303::fbData->setCounter(
+            kUnexpectedNumPresentPsu, presentCount < expectedMin ? 1 : 0);
+      }
+    }
+  }
 
   XLOG(INFO) << fmt::format(
       "Max Input Voltage: {}V (Based on {}).  Processed: {}/{}.  Power Type: {}",

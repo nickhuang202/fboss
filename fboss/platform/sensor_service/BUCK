@@ -29,6 +29,7 @@ cpp_library(
         "//fboss/platform/helpers:structured_logger",
         "//fboss/platform/sensor_service/if:sensor_config-cpp2-types",
         "//fboss/platform/sensor_service/if:sensor_service-cpp2-types",
+        "//fboss/platform/sensor_service/utilities:power_config_utils",
         "//folly:file_util",
         "//folly:string",
         "//folly:synchronized",
