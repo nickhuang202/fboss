@@ -12,8 +12,6 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/ranges.h>
-
 #include "fboss/agent/AddressUtil.h"
 #include "fboss/agent/AgentFeatures.h"
 #include "fboss/agent/TxPacket.h"
@@ -25,6 +23,7 @@
 #include "fboss/agent/test/EcmpSetupHelper.h"
 #include "fboss/agent/test/TestUtils.h"
 #include "fboss/agent/test/TrunkUtils.h"
+#include "fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTestUtils.h"
 #include "fboss/agent/test/utils/CoppTestUtils.h"
 #include "fboss/agent/test/utils/PacketSnooper.h"
 #include "fboss/agent/test/utils/PortStatsTestUtils.h"
@@ -34,6 +33,8 @@
 #include <gtest/gtest.h>
 
 namespace {
+
+namespace mpls_test = facebook::fboss::utility::mpls_dataplane_test;
 
 const facebook::fboss::Label kTopLabel{1101};
 const facebook::fboss::LabelForwardingAction::Label kSwapLabel{201};
@@ -173,13 +174,7 @@ class AgentMPLSMidpointTest : public AgentHwTest {
       uint32_t baseLabel,
       uint32_t count) const {
     CHECK_GT(count, 0);
-
-    LabelForwardingAction::LabelStack stack;
-    stack.reserve(count);
-    for (uint32_t i = 0; i < count; ++i) {
-      stack.push_back(baseLabel + i);
-    }
-    return stack;
+    return mpls_test::makeLabelStack(baseLabel, count);
   }
 
   LabelForwardingAction::LabelStack singlePushedLabelStack() const {
@@ -364,49 +359,21 @@ class AgentMPLSMidpointTest : public AgentHwTest {
     }
   }
 
-  std::vector<uint32_t> expectedWireOrderLabelValues(
-      const LabelForwardingAction::LabelStack& expectedPushStack) const {
-    std::vector<uint32_t> labels;
-    labels.reserve(expectedPushStack.size());
-    // LabelForwardingAction push stack is programmed inner-to-outer, while the
-    // captured MPLS header stack is parsed outer-to-inner from the wire.
-    for (auto itr = expectedPushStack.rbegin(); itr != expectedPushStack.rend();
-         ++itr) {
-      labels.push_back(static_cast<uint32_t>(*itr));
-    }
-    return labels;
-  }
-
-  std::vector<uint32_t> capturedLabelValues(
-      const std::vector<MPLSHdr::Label>& labelStack) const {
-    std::vector<uint32_t> labels;
-    labels.reserve(labelStack.size());
-    for (const auto& label : labelStack) {
-      labels.push_back(label.getLabelValue());
-    }
-    return labels;
-  }
-
-  std::string labelValuesStr(const std::vector<uint32_t>& labels) const {
-    return fmt::format("[{}]", fmt::join(labels, ", "));
-  }
-
   void verifyCapturedLabelStack(
       const std::vector<MPLSHdr::Label>& labelStack,
       const LabelForwardingAction::LabelStack& expectedPushStack) const {
     ASSERT_EQ(labelStack.size(), expectedPushStack.size());
 
-    auto actualLabels = capturedLabelValues(labelStack);
-    auto expectedLabels = expectedWireOrderLabelValues(expectedPushStack);
+    auto actualLabels = mpls_test::capturedLabelValues(labelStack);
+    auto expectedLabels =
+        mpls_test::expectedWireOrderLabelValues(expectedPushStack);
     XLOG(INFO) << "MPLS midpoint PUSH captured labels "
-               << labelValuesStr(actualLabels) << ", expected wire labels "
-               << labelValuesStr(expectedLabels);
+               << mpls_test::labelValuesStr(actualLabels)
+               << ", expected wire labels "
+               << mpls_test::labelValuesStr(expectedLabels);
 
     EXPECT_EQ(actualLabels, expectedLabels);
-
-    for (size_t i = 0; i < labelStack.size(); ++i) {
-      EXPECT_EQ(labelStack[i].isbottomOfStack(), i + 1 == labelStack.size());
-    }
+    EXPECT_TRUE(mpls_test::bottomOfStackBitsValid(labelStack));
   }
 
   void setupStaticMplsRoutePush(
