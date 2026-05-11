@@ -377,6 +377,20 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
           sendIpIngressPacket<AddrT>(ttlOrHopLimit, injectionType);
         });
   }
+
+  void verifyIp2MplsPush(
+      const LabelForwardingAction::LabelStack& expectedPushStack) {
+    constexpr std::array kInjectionTypes{
+        MplsPacketInjectionType::FrontPanel,
+        MplsPacketInjectionType::Cpu,
+    };
+    for (auto injectionType : kInjectionTypes) {
+      verifyIp2MplsPushAndTrapPacket<folly::IPAddressV4>(
+          injectionType, expectedPushStack);
+      verifyIp2MplsPushAndTrapPacket<folly::IPAddressV6>(
+          injectionType, expectedPushStack);
+    }
+  }
 };
 
 TYPED_TEST_SUITE(AgentMPLSHeadEndTest, MplsHeadEndPortTypes);
@@ -387,17 +401,7 @@ TYPED_TEST(AgentMPLSHeadEndTest, PushLabel) {
   };
 
   auto verify = [this]() {
-    auto pushStack = this->singlePushedLabelStack();
-    constexpr std::array kInjectionTypes{
-        MplsPacketInjectionType::FrontPanel,
-        MplsPacketInjectionType::Cpu,
-    };
-    for (auto injectionType : kInjectionTypes) {
-      this->template verifyIp2MplsPushAndTrapPacket<folly::IPAddressV4>(
-          injectionType, pushStack);
-      this->template verifyIp2MplsPushAndTrapPacket<folly::IPAddressV6>(
-          injectionType, pushStack);
-    }
+    this->verifyIp2MplsPush(this->singlePushedLabelStack());
   };
 
   this->verifyAcrossWarmBoots(setup, verify);
