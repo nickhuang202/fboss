@@ -92,6 +92,7 @@ from qsfp_service_utils import cleanup_qsfp_service, setup_and_start_qsfp_servic
 # - QSFP: ./share/qsfp_known_bad_tests/fboss_qsfp_known_bad_tests.materialized_JSON
 #         ./share/qsfp_unsupported_tests/fboss_qsfp_unsupported_tests.materialized_JSON
 # - Link: ./share/link_known_bad_tests/agent_ensemble_link_known_bad_tests.materialized_JSON
+#         ./share/link_known_bad_tests/agent_ensemble_link_unsupported_tests.materialized_JSON
 
 OPT_ARG_COLDBOOT = "--coldboot_only"
 OPT_ARG_FILTER = "--filter"
