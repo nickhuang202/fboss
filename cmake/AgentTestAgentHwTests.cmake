@@ -131,6 +131,7 @@ add_library(agent_hw_test_src
   fboss/agent/test/agent_hw_tests/AgentMirrorOnDropXgsImpl.cpp
   fboss/agent/test/agent_hw_tests/AgentMirroringTests.cpp
   fboss/agent/test/agent_hw_tests/AgentMirroringScaleTests.cpp
+  fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTestUtils.cpp
   fboss/agent/test/agent_hw_tests/AgentMPLSMidpointTests.cpp
   fboss/agent/test/agent_hw_tests/AgentMPLSTests.cpp
   fboss/agent/test/agent_hw_tests/AgentNSFScaleTests.cpp
