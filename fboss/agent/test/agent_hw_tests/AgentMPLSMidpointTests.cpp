@@ -261,9 +261,13 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
       const LabelForwardingAction::LabelStack& pushStack) {
     auto mechanism = trapPacketMechanism();
     auto config = initialConfig(*getAgentEnsemble());
-    configureStaticMplsPushRoute(config, pushStack);
-    configureTrapPacketMechanism(config, mechanism, pushStack);
+
     applyConfigAndEnableTrunks(config);
+    // Resolve the PUSH nexthop before programming the MPLS route. TH6/BRCM-SAI
+    // currently requires the MPLS nexthop object to exist when the InSeg entry
+    // is created. A follow-up link-flap test covers nexthop unresolve and
+    // re-resolve convergence after the route has been programmed.
+    resolveNextHopForPortWithMac(egressPortDescriptor(), routerMac());
 
     // TTL-expiry fallback traps the post-PUSH packet on its second pass:
     // - The first pass imposes the pushed label and egresses to a loopback
@@ -272,13 +276,16 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
     // - The second pass matches the pushed-label SWAP route and expires TTL.
     // - The MPLS TTL trap sends the packet to CPU for packet snooper
     // inspection.
-    resolveNextHopForPortWithMac(egressPortDescriptor(), routerMac());
     if (mechanism == MplsTrapPacketMechanism::TtlExpiry) {
       resolveNextHopForPort(
           PortDescriptor(secondPassEgressPort()),
           pushedTopLabel(pushStack),
           LabelForwardingAction::LabelForwardingType::SWAP);
     }
+
+    configureStaticMplsPushRoute(config, pushStack);
+    configureTrapPacketMechanism(config, mechanism, pushStack);
+    applyConfigAndEnableTrunks(config);
   }
 
   void verifyMplsPushAndTrapPacket(
