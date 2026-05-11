@@ -80,6 +80,19 @@ folly::IPAddressV6 headEndIngressPacketDstIp() {
   return folly::IPAddressV6{"2001::1"};
 }
 
+template <typename AddrT>
+MplsIpVersion headEndIpVersion();
+
+template <>
+MplsIpVersion headEndIpVersion<folly::IPAddressV4>() {
+  return MplsIpVersion::V4;
+}
+
+template <>
+MplsIpVersion headEndIpVersion<folly::IPAddressV6>() {
+  return MplsIpVersion::V6;
+}
+
 template <typename PortType>
 class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
  protected:
@@ -326,8 +339,39 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
           LabelForwardingAction::LabelForwardingType::SWAP);
     }
   }
+
+  template <typename AddrT>
+  void verifyIp2MplsPushAndTrapPacket(
+      MplsPacketInjectionType injectionType,
+      const LabelForwardingAction::LabelStack& expectedPushStack) {
+    auto mechanism = trapPacketMechanism();
+    BaseT::verifyMplsPushAndTrapPacket(
+        "mpls-head-end-push-verifier",
+        headEndIpVersion<AddrT>(),
+        injectionType,
+        mechanism,
+        expectedPushStack,
+        [this, injectionType](uint8_t ttlOrHopLimit) {
+          sendIpIngressPacket<AddrT>(ttlOrHopLimit, injectionType);
+        });
+  }
 };
 
 TYPED_TEST_SUITE(AgentMPLSHeadEndTest, MplsHeadEndPortTypes);
+
+TYPED_TEST(AgentMPLSHeadEndTest, PushLabel) {
+  auto setup = [this]() {
+    this->template setupStaticIp2MplsRoutePush<folly::IPAddressV6>(
+        this->singlePushedLabelStack());
+  };
+
+  auto verify = [this]() {
+    auto pushStack = this->singlePushedLabelStack();
+    this->template verifyIp2MplsPushAndTrapPacket<folly::IPAddressV6>(
+        MplsPacketInjectionType::FrontPanel, pushStack);
+  };
+
+  this->verifyAcrossWarmBoots(setup, verify);
+}
 
 } // namespace facebook::fboss
