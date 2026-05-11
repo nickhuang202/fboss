@@ -253,6 +253,7 @@ cpp_library(
     ],
     headers = [
         "AgentArsBase.h",
+        "AgentMPLSDataplaneTest.h",
         "AgentMPLSDataplaneTestUtils.h",
         "AgentMirrorOnDropStatelessTest.h",
         "AgentMirrorOnDropTestBase.h",
