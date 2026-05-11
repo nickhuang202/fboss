@@ -7,6 +7,7 @@
 
 #include <folly/MacAddress.h>
 
+#include "fboss/agent/AgentFeatures.h"
 #include "fboss/agent/hw/test/ConfigFactory.h"
 #include "fboss/agent/state/LabelForwardingAction.h"
 #include "fboss/agent/state/PortDescriptor.h"
@@ -23,6 +24,11 @@ template <typename PortType>
 class AgentMPLSDataplaneTest : public AgentHwTest {
  protected:
   static constexpr bool kIsTrunk = std::is_same_v<PortType, AggregatePortID>;
+
+  void setCmdLineFlagOverrides() const override {
+    AgentHwTest::setCmdLineFlagOverrides();
+    FLAGS_observe_rx_packets_without_interface = true;
+  }
 
   cfg::SwitchConfig initialConfig(
       const AgentEnsemble& ensemble) const override {

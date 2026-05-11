@@ -8,21 +8,17 @@
 
 #include <array>
 #include <memory>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "fboss/agent/AddressUtil.h"
-#include "fboss/agent/AgentFeatures.h"
 #include "fboss/agent/TxPacket.h"
-#include "fboss/agent/hw/test/ConfigFactory.h"
 #include "fboss/agent/if/gen-cpp2/common_types.h"
 #include "fboss/agent/packet/EthFrame.h"
 #include "fboss/agent/state/PortDescriptor.h"
-#include "fboss/agent/test/AgentHwTest.h"
 #include "fboss/agent/test/EcmpSetupHelper.h"
 #include "fboss/agent/test/TestUtils.h"
-#include "fboss/agent/test/TrunkUtils.h"
+#include "fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTest.h"
 #include "fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTestUtils.h"
 #include "fboss/agent/test/utils/CoppTestUtils.h"
 #include "fboss/agent/test/utils/PacketSnooper.h"
@@ -53,59 +49,33 @@ using MplsMidpointPortTypes =
 namespace facebook::fboss {
 
 template <typename PortType>
-class AgentMPLSMidpointTest : public AgentHwTest {
+class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
  protected:
-  static constexpr bool kIsTrunk = std::is_same_v<PortType, AggregatePortID>;
+  using BaseT = AgentMPLSDataplaneTest<PortType>;
   using EcmpSetupHelper =
       utility::MplsEcmpSetupTargetedPorts<folly::IPAddressV6>;
 
-  void setCmdLineFlagOverrides() const override {
-    AgentHwTest::setCmdLineFlagOverrides();
-    FLAGS_observe_rx_packets_without_interface = true;
-  }
-
-  cfg::SwitchConfig initialConfig(
-      const AgentEnsemble& ensemble) const override {
-    auto config = utility::onePortPerInterfaceConfig(
-        ensemble.getSw(),
-        ensemble.masterLogicalPortIds(),
-        true /* interfaceHasSubnet */);
-
-    if constexpr (kIsTrunk) {
-      utility::addAggPort(1, {ensemble.masterLogicalPortIds()[0]}, &config);
-    }
-
-    utility::setDefaultCpuTrafficPolicyConfig(
-        config, ensemble.getL3Asics(), ensemble.isSai());
-    utility::addCpuQueueConfig(config, ensemble.getL3Asics(), ensemble.isSai());
-    return config;
-  }
+  using BaseT::applyConfigAndEnableTrunks;
+  using BaseT::egressPort;
+  using BaseT::egressPortDescriptor;
+  using BaseT::getAgentEnsemble;
+  using BaseT::getLatestPortStats;
+  using BaseT::getProgrammedState;
+  using BaseT::getSw;
+  using BaseT::getVlanIDForTx;
+  using BaseT::ingressPort;
+  using BaseT::initialConfig;
+  using BaseT::pushedTopLabel;
+  using BaseT::routerMac;
+  using BaseT::secondPassEgressPort;
+  using BaseT::switchIdForPort;
 
   std::vector<ProductionFeature> getProductionFeaturesVerified()
       const override {
-    if constexpr (kIsTrunk) {
+    if constexpr (BaseT::kIsTrunk) {
       return {ProductionFeature::MPLS_MIDPOINT, ProductionFeature::LAG};
     }
     return {ProductionFeature::MPLS_MIDPOINT};
-  }
-
-  PortID egressPort() const {
-    return masterLogicalInterfacePortIds()[0];
-  }
-
-  PortDescriptor egressPortDescriptor() const {
-    if constexpr (kIsTrunk) {
-      return PortDescriptor(AggregatePortID(1));
-    }
-    return PortDescriptor(egressPort());
-  }
-
-  PortID ingressPort() const {
-    return masterLogicalInterfacePortIds()[1];
-  }
-
-  PortID secondPassEgressPort() const {
-    return masterLogicalInterfacePortIds()[2];
   }
 
   MplsTrapPacketMechanism trapPacketMechanism() const {
@@ -125,12 +95,6 @@ class AgentMPLSMidpointTest : public AgentHwTest {
         actionType);
   }
 
-  Label pushedTopLabel(
-      const LabelForwardingAction::LabelStack& pushStack) const {
-    CHECK(!pushStack.empty());
-    return pushStack.back();
-  }
-
   LabelForwardingAction::LabelStack pushedLabelStack(
       uint32_t baseLabel,
       uint32_t count) const {
@@ -146,10 +110,6 @@ class AgentMPLSMidpointTest : public AgentHwTest {
     auto asic = checkSameAndGetAsicForTesting(getAgentEnsemble()->getL3Asics());
     auto depth = asic->getMaxLabelStackDepth();
     return pushedLabelStack(kMaxPushedLabelBase, depth);
-  }
-
-  folly::MacAddress routerMac() const {
-    return getMacForFirstInterfaceWithPortsForTesting(getProgrammedState());
   }
 
   void configureStaticMplsRoute(
@@ -221,7 +181,7 @@ class AgentMPLSMidpointTest : public AgentHwTest {
       const PortDescriptor& nextHop,
       Label topLabel,
       LabelForwardingAction::LabelForwardingType actionType) {
-    applyNewState(
+    this->applyNewState(
         [this, nextHop, topLabel, actionType](
             const std::shared_ptr<SwitchState>& state) {
           auto helper = EcmpSetupHelper(
@@ -242,7 +202,7 @@ class AgentMPLSMidpointTest : public AgentHwTest {
   void resolveNextHopForPortWithMac(
       const PortDescriptor& nextHop,
       folly::MacAddress nextHopMac) {
-    applyNewState(
+    this->applyNewState(
         [this, nextHop, nextHopMac](const std::shared_ptr<SwitchState>& state) {
           utility::EcmpSetupTargetedPorts6 helper(
               state, getSw()->needL2EntryForNeighbor(), nextHopMac);
@@ -250,17 +210,6 @@ class AgentMPLSMidpointTest : public AgentHwTest {
               state, boost::container::flat_set<PortDescriptor>{nextHop});
         },
         "resolve midpoint MPLS nexthop with explicit MAC");
-  }
-
-  void applyConfigAndEnableTrunks(const cfg::SwitchConfig& config) {
-    applyNewConfig(config);
-    if constexpr (kIsTrunk) {
-      applyNewState(
-          [](const std::shared_ptr<SwitchState>& state) {
-            return utility::enableTrunkPorts(state);
-          },
-          "enable trunk ports");
-    }
   }
 
   std::unique_ptr<TxPacket> makeMplsIngressPacket(
@@ -374,7 +323,7 @@ class AgentMPLSMidpointTest : public AgentHwTest {
             " trapMechanism=",
             mpls_test::name(mechanism),
             " isTrunk=",
-            kIsTrunk));
+            BaseT::kIsTrunk));
 
     utility::SwSwitchPacketSnooper snooper(
         getSw(),
