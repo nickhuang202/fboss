@@ -24,6 +24,16 @@ add_fbthrift_cpp_library(
     reflection
 )
 
+add_library(power_config_utils INTERFACE)
+
+target_include_directories(power_config_utils INTERFACE
+  ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(power_config_utils INTERFACE
+  sensor_config_cpp2
+)
+
 add_library(sensor_service_config_validator
   fboss/platform/sensor_service/ConfigValidator.cpp
 )
@@ -32,6 +42,7 @@ target_link_libraries(sensor_service_config_validator
   fmt::fmt
   platform_manager_config_validator
   platform_manager_utils
+  power_config_utils
   sensor_config_cpp2
   Folly::folly
 )
@@ -72,7 +83,6 @@ target_link_libraries(sensor_service_lib
   sensor_service_cpp2
   sensor_service_stats_cpp2
   sensor_config_cpp2
-  sensor_service_config_validator
   Folly::folly
   FBThrift::thriftcpp2
   fsdb_stream_client
@@ -110,6 +120,7 @@ add_executable(sensor_service_hw_test
 )
 
 target_link_libraries(sensor_service_hw_test
+  power_config_utils
   sensor_service_lib
   thrift_service_utils
   ${GTEST}
