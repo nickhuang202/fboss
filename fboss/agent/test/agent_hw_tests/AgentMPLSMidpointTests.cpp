@@ -14,15 +14,11 @@
 #include "fboss/agent/AddressUtil.h"
 #include "fboss/agent/TxPacket.h"
 #include "fboss/agent/if/gen-cpp2/common_types.h"
-#include "fboss/agent/packet/EthFrame.h"
 #include "fboss/agent/state/PortDescriptor.h"
 #include "fboss/agent/test/EcmpSetupHelper.h"
 #include "fboss/agent/test/TestUtils.h"
 #include "fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTest.h"
 #include "fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTestUtils.h"
-#include "fboss/agent/test/utils/CoppTestUtils.h"
-#include "fboss/agent/test/utils/PacketSnooper.h"
-#include "fboss/agent/test/utils/PortStatsTestUtils.h"
 #include "fboss/agent/test/utils/TrapPacketUtils.h"
 #include "fboss/agent/types.h"
 
@@ -37,7 +33,6 @@ using mpls_test::MplsTrapPacketMechanism;
 
 const facebook::fboss::Label kTopLabel{1101};
 const facebook::fboss::LabelForwardingAction::Label kSwapLabel{201};
-constexpr auto kGetQueueOutPktsRetryTimes = 5;
 constexpr uint32_t kSinglePushedLabelBase = 101;
 constexpr uint32_t kMaxPushedLabelBase = 1001;
 
@@ -269,23 +264,6 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
     }
   }
 
-  void verifyCapturedLabelStack(
-      const std::vector<MPLSHdr::Label>& labelStack,
-      const LabelForwardingAction::LabelStack& expectedPushStack) const {
-    ASSERT_EQ(labelStack.size(), expectedPushStack.size());
-
-    auto actualLabels = mpls_test::capturedLabelValues(labelStack);
-    auto expectedLabels =
-        mpls_test::expectedWireOrderLabelValues(expectedPushStack);
-    XLOG(INFO) << "MPLS midpoint PUSH captured labels "
-               << mpls_test::labelValuesStr(actualLabels)
-               << ", expected wire labels "
-               << mpls_test::labelValuesStr(expectedLabels);
-
-    EXPECT_EQ(actualLabels, expectedLabels);
-    EXPECT_TRUE(mpls_test::bottomOfStackBitsValid(labelStack));
-  }
-
   void setupStaticMplsRoutePush(
       const LabelForwardingAction::LabelStack& pushStack) {
     auto mechanism = trapPacketMechanism();
@@ -299,7 +277,8 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
     // port.
     // - The looped packet uses the router MAC so it gets routed again.
     // - The second pass matches the pushed-label SWAP route and expires TTL.
-    // - The MPLS TTL trap sends the packet to CPU for raw snooper inspection.
+    // - The MPLS TTL trap sends the packet to CPU for packet snooper
+    // inspection.
     resolveNextHopForPortWithMac(egressPortDescriptor(), routerMac());
     if (mechanism == MplsTrapPacketMechanism::TtlExpiry) {
       resolveNextHopForPort(
@@ -314,69 +293,15 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
       MplsPacketInjectionType injectionType,
       const LabelForwardingAction::LabelStack& expectedPushStack) {
     auto mechanism = trapPacketMechanism();
-    SCOPED_TRACE(
-        folly::to<std::string>(
-            "ipVersion=",
-            mpls_test::name(ipVersion),
-            " injectionType=",
-            mpls_test::name(injectionType),
-            " trapMechanism=",
-            mpls_test::name(mechanism),
-            " isTrunk=",
-            BaseT::kIsTrunk));
-
-    utility::SwSwitchPacketSnooper snooper(
-        getSw(),
+    BaseT::verifyMplsPushAndTrapPacket(
         "mpls-midpoint-push-verifier",
-        std::nullopt,
-        std::nullopt,
-        std::nullopt,
-        utility::packetSnooperReceivePacketType::PACKET_TYPE_ALL);
-    snooper.ignoreUnclaimedRxPkts();
-
-    auto cpuQueueOutPktsBefore = utility::getQueueOutPacketsWithRetry(
-        getSw(),
-        switchIdForPort(egressPort()),
-        utility::kCoppLowPriQueueId,
-        0 /* retryTimes */,
-        0 /* expectedNumPkts */);
-    auto outPktsBefore =
-        utility::getPortOutPkts(getLatestPortStats(egressPort()));
-
-    auto ttl = mechanism == MplsTrapPacketMechanism::TtlExpiry ? 2 : 128;
-    sendMplsIngressPacket(kTopLabel, ttl, ipVersion, injectionType);
-
-    WITH_RETRIES({
-      auto outPktsAfter =
-          utility::getPortOutPkts(getLatestPortStats(egressPort()));
-      EXPECT_EVENTUALLY_EQ(1, outPktsAfter - outPktsBefore);
-
-      if (mechanism == MplsTrapPacketMechanism::TtlExpiry) {
-        auto cpuQueueOutPktsAfter = utility::getQueueOutPacketsWithRetry(
-            getSw(),
-            switchIdForPort(egressPort()),
-            utility::kCoppLowPriQueueId,
-            kGetQueueOutPktsRetryTimes,
-            cpuQueueOutPktsBefore + 1);
-        EXPECT_EVENTUALLY_EQ(1, cpuQueueOutPktsAfter - cpuQueueOutPktsBefore);
-      }
-    });
-
-    auto pktBuf = snooper.waitForPacket(10);
-    ASSERT_TRUE(pktBuf.has_value());
-    ASSERT_TRUE(*pktBuf);
-
-    folly::io::Cursor cursor((*pktBuf).get());
-    utility::EthFrame frame(cursor);
-
-    auto mplsPayload = frame.mplsPayLoad();
-    ASSERT_TRUE(mplsPayload.has_value());
-
-    const auto& mplsHeader = mplsPayload->header();
-    const auto& labelStack = mplsHeader.stack();
-    XLOG(INFO) << "MPLS midpoint PUSH captured header " << mplsHeader;
-
-    verifyCapturedLabelStack(labelStack, expectedPushStack);
+        ipVersion,
+        injectionType,
+        mechanism,
+        expectedPushStack,
+        [this, ipVersion, injectionType](uint8_t ttl) {
+          sendMplsIngressPacket(kTopLabel, ttl, ipVersion, injectionType);
+        });
   }
 };
 

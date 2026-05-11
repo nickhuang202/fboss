@@ -3,20 +3,30 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <type_traits>
 
+#include <folly/Conv.h>
 #include <folly/MacAddress.h>
+#include <folly/io/Cursor.h>
+#include <folly/logging/xlog.h>
 
 #include "fboss/agent/AgentFeatures.h"
 #include "fboss/agent/hw/test/ConfigFactory.h"
+#include "fboss/agent/packet/EthFrame.h"
 #include "fboss/agent/state/LabelForwardingAction.h"
 #include "fboss/agent/state/PortDescriptor.h"
 #include "fboss/agent/state/SwitchState.h"
 #include "fboss/agent/test/AgentHwTest.h"
 #include "fboss/agent/test/TestUtils.h"
 #include "fboss/agent/test/TrunkUtils.h"
+#include "fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTestUtils.h"
 #include "fboss/agent/test/utils/CoppTestUtils.h"
+#include "fboss/agent/test/utils/PacketSnooper.h"
+#include "fboss/agent/test/utils/PortStatsTestUtils.h"
 #include "fboss/agent/types.h"
+
+#include <gtest/gtest.h>
 
 namespace facebook::fboss {
 
@@ -24,6 +34,7 @@ template <typename PortType>
 class AgentMPLSDataplaneTest : public AgentHwTest {
  protected:
   static constexpr bool kIsTrunk = std::is_same_v<PortType, AggregatePortID>;
+  static constexpr auto kGetQueueOutPktsRetryTimes = 5;
 
   void setCmdLineFlagOverrides() const override {
     AgentHwTest::setCmdLineFlagOverrides();
@@ -86,6 +97,103 @@ class AgentMPLSDataplaneTest : public AgentHwTest {
       const LabelForwardingAction::LabelStack& pushStack) const {
     CHECK(!pushStack.empty());
     return pushStack.back();
+  }
+
+  void verifyCapturedLabelStack(
+      const std::vector<MPLSHdr::Label>& labelStack,
+      const LabelForwardingAction::LabelStack& expectedPushStack) const {
+    ASSERT_EQ(labelStack.size(), expectedPushStack.size());
+
+    auto actualLabels =
+        utility::mpls_dataplane_test::capturedLabelValues(labelStack);
+    auto expectedLabels =
+        utility::mpls_dataplane_test::expectedWireOrderLabelValues(
+            expectedPushStack);
+    XLOG(INFO) << "MPLS dataplane PUSH captured labels "
+               << utility::mpls_dataplane_test::labelValuesStr(actualLabels)
+               << ", expected wire labels "
+               << utility::mpls_dataplane_test::labelValuesStr(expectedLabels);
+
+    EXPECT_EQ(actualLabels, expectedLabels);
+    EXPECT_TRUE(
+        utility::mpls_dataplane_test::bottomOfStackBitsValid(labelStack));
+  }
+
+  template <typename SendPacketFn>
+  void verifyMplsPushAndTrapPacket(
+      const std::string& snooperName,
+      utility::mpls_dataplane_test::MplsIpVersion ipVersion,
+      utility::mpls_dataplane_test::MplsPacketInjectionType injectionType,
+      utility::mpls_dataplane_test::MplsTrapPacketMechanism mechanism,
+      const LabelForwardingAction::LabelStack& expectedPushStack,
+      SendPacketFn sendPacket) {
+    SCOPED_TRACE(
+        folly::to<std::string>(
+            "ipVersion=",
+            utility::mpls_dataplane_test::name(ipVersion),
+            " injectionType=",
+            utility::mpls_dataplane_test::name(injectionType),
+            " trapMechanism=",
+            utility::mpls_dataplane_test::name(mechanism),
+            " isTrunk=",
+            kIsTrunk));
+
+    utility::SwSwitchPacketSnooper snooper(
+        this->getSw(),
+        snooperName,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        utility::packetSnooperReceivePacketType::PACKET_TYPE_ALL);
+    snooper.ignoreUnclaimedRxPkts();
+
+    auto cpuQueueOutPktsBefore = utility::getQueueOutPacketsWithRetry(
+        this->getSw(),
+        this->switchIdForPort(egressPort()),
+        utility::kCoppLowPriQueueId,
+        0 /* retryTimes */,
+        0 /* expectedNumPkts */);
+    auto outPktsBefore =
+        utility::getPortOutPkts(this->getLatestPortStats(egressPort()));
+
+    auto ttl = mechanism ==
+            utility::mpls_dataplane_test::MplsTrapPacketMechanism::TtlExpiry
+        ? 2
+        : 128;
+    sendPacket(ttl);
+
+    WITH_RETRIES({
+      auto outPktsAfter =
+          utility::getPortOutPkts(this->getLatestPortStats(egressPort()));
+      EXPECT_EVENTUALLY_EQ(1, outPktsAfter - outPktsBefore);
+
+      if (mechanism ==
+          utility::mpls_dataplane_test::MplsTrapPacketMechanism::TtlExpiry) {
+        auto cpuQueueOutPktsAfter = utility::getQueueOutPacketsWithRetry(
+            this->getSw(),
+            this->switchIdForPort(egressPort()),
+            utility::kCoppLowPriQueueId,
+            kGetQueueOutPktsRetryTimes,
+            cpuQueueOutPktsBefore + 1);
+        EXPECT_EVENTUALLY_EQ(1, cpuQueueOutPktsAfter - cpuQueueOutPktsBefore);
+      }
+    });
+
+    auto pktBuf = snooper.waitForPacket(10);
+    ASSERT_TRUE(pktBuf.has_value());
+    ASSERT_TRUE(*pktBuf);
+
+    folly::io::Cursor cursor((*pktBuf).get());
+    utility::EthFrame frame(cursor);
+
+    auto mplsPayload = frame.mplsPayLoad();
+    ASSERT_TRUE(mplsPayload.has_value());
+
+    const auto& mplsHeader = mplsPayload->header();
+    const auto& labelStack = mplsHeader.stack();
+    XLOG(INFO) << "MPLS dataplane PUSH captured header " << mplsHeader;
+
+    verifyCapturedLabelStack(labelStack, expectedPushStack);
   }
 };
 
