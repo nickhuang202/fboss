@@ -36,10 +36,10 @@
 namespace {
 
 const facebook::fboss::Label kTopLabel{1101};
-const facebook::fboss::LabelForwardingAction::LabelStack
-    kSinglePushedLabelStack{101};
 const facebook::fboss::LabelForwardingAction::Label kSwapLabel{201};
 constexpr auto kGetQueueOutPktsRetryTimes = 5;
+constexpr uint32_t kSinglePushedLabelBase = 101;
+constexpr uint32_t kMaxPushedLabelBase = 1001;
 
 using MplsMidpointPortTypes =
     ::testing::Types<facebook::fboss::PortID, facebook::fboss::AggregatePortID>;
@@ -169,17 +169,27 @@ class AgentMPLSMidpointTest : public AgentHwTest {
     return pushStack.back();
   }
 
+  LabelForwardingAction::LabelStack pushedLabelStack(
+      uint32_t baseLabel,
+      uint32_t count) const {
+    CHECK_GT(count, 0);
+
+    LabelForwardingAction::LabelStack stack;
+    stack.reserve(count);
+    for (uint32_t i = 0; i < count; ++i) {
+      stack.push_back(baseLabel + i);
+    }
+    return stack;
+  }
+
+  LabelForwardingAction::LabelStack singlePushedLabelStack() const {
+    return pushedLabelStack(kSinglePushedLabelBase, 1);
+  }
+
   LabelForwardingAction::LabelStack maxPushedLabelStack() const {
     auto asic = checkSameAndGetAsicForTesting(getAgentEnsemble()->getL3Asics());
     auto depth = asic->getMaxLabelStackDepth();
-    CHECK_GT(depth, 0);
-
-    LabelForwardingAction::LabelStack stack;
-    stack.reserve(depth);
-    for (uint32_t i = 0; i < depth; ++i) {
-      stack.push_back(1001 + i);
-    }
-    return stack;
+    return pushedLabelStack(kMaxPushedLabelBase, depth);
   }
 
   folly::MacAddress routerMac() const {
@@ -510,10 +520,11 @@ TYPED_TEST_SUITE(AgentMPLSMidpointTest, MplsMidpointPortTypes);
 // MPLS packet to CPU" inSegEntry does not work and needs an SAI SDK fix.
 TYPED_TEST(AgentMPLSMidpointTest, PushLabel) {
   auto setup = [this]() {
-    this->setupStaticMplsRoutePush(kSinglePushedLabelStack);
+    this->setupStaticMplsRoutePush(this->singlePushedLabelStack());
   };
 
   auto verify = [this]() {
+    auto pushStack = this->singlePushedLabelStack();
     constexpr std::array kIpVersions{
         MplsPayloadIpVersion::V4,
         MplsPayloadIpVersion::V6,
@@ -524,8 +535,7 @@ TYPED_TEST(AgentMPLSMidpointTest, PushLabel) {
     };
     for (auto ipVersion : kIpVersions) {
       for (auto injectionType : kInjectionTypes) {
-        this->verifyMplsPushAndTrapPacket(
-            ipVersion, injectionType, kSinglePushedLabelStack);
+        this->verifyMplsPushAndTrapPacket(ipVersion, injectionType, pushStack);
       }
     }
   };
