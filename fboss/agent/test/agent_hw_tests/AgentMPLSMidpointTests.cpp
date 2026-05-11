@@ -17,6 +17,7 @@
 #include "fboss/agent/state/PortDescriptor.h"
 #include "fboss/agent/test/EcmpSetupHelper.h"
 #include "fboss/agent/test/TestUtils.h"
+#include "fboss/agent/test/TrunkUtils.h"
 #include "fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTest.h"
 #include "fboss/agent/test/agent_hw_tests/AgentMPLSDataplaneTestUtils.h"
 #include "fboss/agent/test/utils/TrapPacketUtils.h"
@@ -200,6 +201,43 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
         "resolve midpoint MPLS nexthop with explicit MAC");
   }
 
+  void unresolveNextHopForPortWithMac(
+      const PortDescriptor& nextHop,
+      folly::MacAddress nextHopMac) {
+    this->applyNewState(
+        [this, nextHop, nextHopMac](const std::shared_ptr<SwitchState>& state) {
+          utility::EcmpSetupTargetedPorts6 helper(
+              state, getSw()->needL2EntryForNeighbor(), nextHopMac);
+          return helper.unresolveNextHops(
+              state, boost::container::flat_set<PortDescriptor>{nextHop});
+        },
+        "unresolve midpoint MPLS nexthop with explicit MAC");
+  }
+
+  void flapEgressPortAndReresolveNextHop() {
+    this->bringDownPort(egressPort());
+    unresolveNextHopForPortWithMac(egressPortDescriptor(), routerMac());
+    this->bringUpPort(egressPort());
+
+    // After the SAI fast-path link-down handler disables the single LAG member,
+    // tests need a switch state delta to re-enable the member because LACP is
+    // not running.
+    if constexpr (BaseT::kIsTrunk) {
+      this->applyNewState(
+          [](const std::shared_ptr<SwitchState>& state) {
+            return utility::disableTrunkPorts(state);
+          },
+          "disable trunk ports to sync with SAI state");
+      this->applyNewState(
+          [](const std::shared_ptr<SwitchState>& state) {
+            return utility::enableTrunkPorts(state);
+          },
+          "re-enable trunk ports after link flap");
+    }
+
+    resolveNextHopForPortWithMac(egressPortDescriptor(), routerMac());
+  }
+
   std::unique_ptr<TxPacket> makeMplsIngressPacket(
       Label label,
       uint8_t ttl,
@@ -339,6 +377,33 @@ TYPED_TEST(AgentMPLSMidpointTest, PushLabel) {
       for (auto injectionType : kInjectionTypes) {
         this->verifyMplsPushAndTrapPacket(ipVersion, injectionType, pushStack);
       }
+    }
+  };
+
+  this->verifyAcrossWarmBoots(setup, verify);
+}
+
+// PushLabelAfterLinkFlap verifies that an already-programmed MPLS PUSH route
+// converges after its egress nexthop link flaps:
+// - Program and verify the normal MPLS midpoint PUSH route.
+// - Bring the egress link down and unresolve the nexthop.
+// - Bring the egress link up and re-resolve the nexthop.
+// - Verify PUSH dataplane forwarding and trapped pushed-label inspection.
+TYPED_TEST(AgentMPLSMidpointTest, PushLabelAfterLinkFlap) {
+  auto setup = [this]() {
+    this->setupStaticMplsRoutePush(this->singlePushedLabelStack());
+    this->flapEgressPortAndReresolveNextHop();
+  };
+
+  auto verify = [this]() {
+    auto pushStack = this->singlePushedLabelStack();
+    constexpr std::array kInjectionTypes{
+        MplsPacketInjectionType::FrontPanel,
+        MplsPacketInjectionType::Cpu,
+    };
+    for (auto injectionType : kInjectionTypes) {
+      this->verifyMplsPushAndTrapPacket(
+          MplsIpVersion::V6, injectionType, pushStack);
     }
   };
 
