@@ -44,10 +44,6 @@ constexpr auto kGetQueueOutPktsRetryTimes = 5;
 using MplsMidpointPortTypes =
     ::testing::Types<facebook::fboss::PortID, facebook::fboss::AggregatePortID>;
 
-} // namespace
-
-namespace facebook::fboss {
-
 enum class MplsPayloadIpVersion {
   V4,
   V6,
@@ -89,6 +85,10 @@ const char* name(MplsTrapPacketMechanism mechanism) {
       return "ttl-expiry";
   }
 }
+
+} // namespace
+
+namespace facebook::fboss {
 
 template <typename PortType>
 class AgentMPLSMidpointTest : public AgentHwTest {
