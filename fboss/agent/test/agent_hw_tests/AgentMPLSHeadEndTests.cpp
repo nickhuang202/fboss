@@ -5,6 +5,7 @@
 #include <folly/IPAddressV4.h>
 #include <folly/IPAddressV6.h>
 
+#include <array>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -340,6 +341,27 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
     }
   }
 
+  void setupStaticIp2MplsRoutePush(
+      const LabelForwardingAction::LabelStack& pushStack) {
+    auto mechanism = trapPacketMechanism();
+    auto config = initialConfig(*getAgentEnsemble());
+    configureStaticIp2MplsPushRoute<folly::IPAddressV4>(config, pushStack);
+    configureStaticIp2MplsPushRoute<folly::IPAddressV6>(config, pushStack);
+    configureTrapPacketMechanism(config, mechanism, pushStack);
+    applyConfigAndEnableTrunks(config);
+
+    resolveIpNextHopForPortWithMac<folly::IPAddressV4>(
+        egressPortDescriptor(), routerMac());
+    resolveIpNextHopForPortWithMac<folly::IPAddressV6>(
+        egressPortDescriptor(), routerMac());
+    if (mechanism == MplsTrapPacketMechanism::TtlExpiry) {
+      resolveMplsNextHopForPort(
+          PortDescriptor(secondPassEgressPort()),
+          pushedTopLabel(pushStack),
+          LabelForwardingAction::LabelForwardingType::SWAP);
+    }
+  }
+
   template <typename AddrT>
   void verifyIp2MplsPushAndTrapPacket(
       MplsPacketInjectionType injectionType,
@@ -361,14 +383,21 @@ TYPED_TEST_SUITE(AgentMPLSHeadEndTest, MplsHeadEndPortTypes);
 
 TYPED_TEST(AgentMPLSHeadEndTest, PushLabel) {
   auto setup = [this]() {
-    this->template setupStaticIp2MplsRoutePush<folly::IPAddressV6>(
-        this->singlePushedLabelStack());
+    this->setupStaticIp2MplsRoutePush(this->singlePushedLabelStack());
   };
 
   auto verify = [this]() {
     auto pushStack = this->singlePushedLabelStack();
-    this->template verifyIp2MplsPushAndTrapPacket<folly::IPAddressV6>(
-        MplsPacketInjectionType::FrontPanel, pushStack);
+    constexpr std::array kInjectionTypes{
+        MplsPacketInjectionType::FrontPanel,
+        MplsPacketInjectionType::Cpu,
+    };
+    for (auto injectionType : kInjectionTypes) {
+      this->template verifyIp2MplsPushAndTrapPacket<folly::IPAddressV4>(
+          injectionType, pushStack);
+      this->template verifyIp2MplsPushAndTrapPacket<folly::IPAddressV6>(
+          injectionType, pushStack);
+    }
   };
 
   this->verifyAcrossWarmBoots(setup, verify);
