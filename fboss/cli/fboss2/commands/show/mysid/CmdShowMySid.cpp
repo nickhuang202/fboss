@@ -28,10 +28,20 @@ CmdShowMySid::RetType CmdShowMySid::createModel(
     entryModel.type() =
         apache::thrift::util::enumNameSafe(entry.type().value());
 
-    for (const auto& nh : entry.nextHops().value()) {
-      entryModel.nextHops()->push_back(
-          network::toIPAddress(nh.address().value()).str());
+    // Only show nexthop for NODE type mysid
+    switch (entry.type().value()) {
+      case MySidType::NODE_MICRO_SID:
+        for (const auto& nh : entry.nextHops().value()) {
+          entryModel.nextHops()->push_back(
+              network::toIPAddress(nh.address().value()).str());
+        }
+        break;
+      case MySidType::ADJACENCY_MICRO_SID:
+      case MySidType::DECAPSULATE_AND_LOOKUP:
+        // Do not show nexthop for these types
+        break;
     }
+    // Continue showing resolvedNextHops for all if present
     for (const auto& nh : entry.resolvedNextHops().value()) {
       entryModel.resolvedNextHops()->push_back(
           network::toIPAddress(nh.address().value()).str());
@@ -47,7 +57,7 @@ void CmdShowMySid::printOutput(const RetType& model, std::ostream& out) {
     out << fmt::format(
         "MySid: {}  Type: {}\n", entry.prefix().value(), entry.type().value());
     for (const auto& nh : entry.nextHops().value()) {
-      out << fmt::format("\tunresolved next hops {}\n", nh);
+      out << fmt::format("\tdestination {}\n", nh);
     }
     for (const auto& nh : entry.resolvedNextHops().value()) {
       out << fmt::format("\tresolved via {}\n", nh);
