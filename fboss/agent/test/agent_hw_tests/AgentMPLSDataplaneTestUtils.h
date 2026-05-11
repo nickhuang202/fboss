@@ -11,23 +11,11 @@
 
 namespace facebook::fboss::utility::mpls_dataplane_test {
 
-enum class MplsIpVersion {
-  V4,
-  V6,
-};
-
-enum class MplsPacketInjectionType {
-  FrontPanel,
-  Cpu,
-};
-
 enum class MplsTrapPacketMechanism {
   SrcPortAcl,
   TtlExpiry,
 };
 
-const char* name(MplsIpVersion ipVersion);
-const char* name(MplsPacketInjectionType injectionType);
 const char* name(MplsTrapPacketMechanism mechanism);
 
 LabelForwardingAction::LabelStack makeLabelStack(

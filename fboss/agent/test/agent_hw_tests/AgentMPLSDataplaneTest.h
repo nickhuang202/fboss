@@ -3,6 +3,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -136,17 +137,17 @@ class AgentMPLSDataplaneTest : public AgentHwTest {
   template <typename SendPacketFn>
   void verifyMplsPushAndTrapPacket(
       const std::string& snooperName,
-      utility::mpls_dataplane_test::MplsIpVersion ipVersion,
-      utility::mpls_dataplane_test::MplsPacketInjectionType injectionType,
+      bool isV4,
+      std::optional<PortID> injectPort,
       utility::mpls_dataplane_test::MplsTrapPacketMechanism mechanism,
       const LabelForwardingAction::LabelStack& expectedPushStack,
       SendPacketFn sendPacket) {
     SCOPED_TRACE(
         folly::to<std::string>(
             "ipVersion=",
-            utility::mpls_dataplane_test::name(ipVersion),
-            " injectionType=",
-            utility::mpls_dataplane_test::name(injectionType),
+            isV4 ? "IPv4" : "IPv6",
+            " send=",
+            injectPort.has_value() ? "front-panel" : "cpu",
             " trapMechanism=",
             utility::mpls_dataplane_test::name(mechanism),
             " isTrunk=",

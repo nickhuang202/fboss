@@ -8,6 +8,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -28,8 +29,6 @@
 namespace {
 
 namespace mpls_test = facebook::fboss::utility::mpls_dataplane_test;
-using mpls_test::MplsIpVersion;
-using mpls_test::MplsPacketInjectionType;
 using mpls_test::MplsTrapPacketMechanism;
 
 const facebook::fboss::Label kTopLabel{1101};
@@ -238,17 +237,15 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
     resolveNextHopForPortWithMac(egressPortDescriptor(), routerMac());
   }
 
-  std::unique_ptr<TxPacket> makeMplsIngressPacket(
-      Label label,
-      uint8_t ttl,
-      MplsIpVersion ipVersion) const {
+  std::unique_ptr<TxPacket>
+  makeMplsIngressPacket(Label label, uint8_t ttl, bool isV4) const {
     auto vlan = getVlanIDForTx();
     CHECK(vlan.has_value());
 
     MPLSHdr::Label mplsLabel{
         static_cast<uint32_t>(label.value()), 0, true, ttl};
     std::unique_ptr<TxPacket> pkt;
-    if (ipVersion == MplsIpVersion::V4) {
+    if (isV4) {
       auto frame = utility::getEthFrame(
           utility::kLocalCpuMac(),
           utility::kLocalCpuMac(),
@@ -279,19 +276,15 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
   void sendMplsIngressPacket(
       Label label,
       uint8_t ttl,
-      MplsIpVersion ipVersion,
-      MplsPacketInjectionType injectionType) {
-    auto pkt = makeMplsIngressPacket(label, ttl, ipVersion);
-    switch (injectionType) {
-      case MplsPacketInjectionType::FrontPanel:
-        EXPECT_TRUE(
-            getAgentEnsemble()->ensureSendPacketOutOfPort(
-                std::move(pkt), ingressPort()));
-        break;
-      case MplsPacketInjectionType::Cpu:
-        EXPECT_TRUE(
-            getAgentEnsemble()->ensureSendPacketSwitched(std::move(pkt)));
-        break;
+      bool isV4,
+      std::optional<PortID> injectPort) {
+    auto pkt = makeMplsIngressPacket(label, ttl, isV4);
+    if (injectPort.has_value()) {
+      EXPECT_TRUE(
+          getAgentEnsemble()->ensureSendPacketOutOfPort(
+              std::move(pkt), *injectPort));
+    } else {
+      EXPECT_TRUE(getAgentEnsemble()->ensureSendPacketSwitched(std::move(pkt)));
     }
   }
 
@@ -327,18 +320,18 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
   }
 
   void verifyMplsPushAndTrapPacket(
-      MplsIpVersion ipVersion,
-      MplsPacketInjectionType injectionType,
+      bool isV4,
+      std::optional<PortID> injectPort,
       const LabelForwardingAction::LabelStack& expectedPushStack) {
     auto mechanism = trapPacketMechanism();
     BaseT::verifyMplsPushAndTrapPacket(
         "mpls-midpoint-push-verifier",
-        ipVersion,
-        injectionType,
+        isV4,
+        injectPort,
         mechanism,
         expectedPushStack,
-        [this, ipVersion, injectionType](uint8_t ttl) {
-          sendMplsIngressPacket(kTopLabel, ttl, ipVersion, injectionType);
+        [this, isV4, injectPort](uint8_t ttl) {
+          sendMplsIngressPacket(kTopLabel, ttl, isV4, injectPort);
         });
   }
 };
@@ -365,17 +358,13 @@ TYPED_TEST(AgentMPLSMidpointTest, PushLabel) {
 
   auto verify = [this]() {
     auto pushStack = this->singlePushedLabelStack();
-    constexpr std::array kIpVersions{
-        MplsIpVersion::V4,
-        MplsIpVersion::V6,
+    const std::array<std::optional<PortID>, 2> injectPorts{
+        std::nullopt,
+        std::optional<PortID>{this->ingressPort()},
     };
-    constexpr std::array kInjectionTypes{
-        MplsPacketInjectionType::FrontPanel,
-        MplsPacketInjectionType::Cpu,
-    };
-    for (auto ipVersion : kIpVersions) {
-      for (auto injectionType : kInjectionTypes) {
-        this->verifyMplsPushAndTrapPacket(ipVersion, injectionType, pushStack);
+    for (bool isV4 : {false, true}) {
+      for (auto injectPort : injectPorts) {
+        this->verifyMplsPushAndTrapPacket(isV4, injectPort, pushStack);
       }
     }
   };
@@ -397,13 +386,13 @@ TYPED_TEST(AgentMPLSMidpointTest, PushLabelAfterLinkFlap) {
 
   auto verify = [this]() {
     auto pushStack = this->singlePushedLabelStack();
-    constexpr std::array kInjectionTypes{
-        MplsPacketInjectionType::FrontPanel,
-        MplsPacketInjectionType::Cpu,
+    const std::array<std::optional<PortID>, 2> injectPorts{
+        std::nullopt,
+        std::optional<PortID>{this->ingressPort()},
     };
-    for (auto injectionType : kInjectionTypes) {
+    for (auto injectPort : injectPorts) {
       this->verifyMplsPushAndTrapPacket(
-          MplsIpVersion::V6, injectionType, pushStack);
+          false /* isV4 */, injectPort, pushStack);
     }
   };
 
@@ -420,17 +409,13 @@ TYPED_TEST(AgentMPLSMidpointTest, PushMaxLabelStack) {
 
   auto verify = [this]() {
     auto pushStack = this->maxPushedLabelStack();
-    constexpr std::array kIpVersions{
-        MplsIpVersion::V4,
-        MplsIpVersion::V6,
+    const std::array<std::optional<PortID>, 2> injectPorts{
+        std::nullopt,
+        std::optional<PortID>{this->ingressPort()},
     };
-    constexpr std::array kInjectionTypes{
-        MplsPacketInjectionType::FrontPanel,
-        MplsPacketInjectionType::Cpu,
-    };
-    for (auto ipVersion : kIpVersions) {
-      for (auto injectionType : kInjectionTypes) {
-        this->verifyMplsPushAndTrapPacket(ipVersion, injectionType, pushStack);
+    for (bool isV4 : {false, true}) {
+      for (auto injectPort : injectPorts) {
+        this->verifyMplsPushAndTrapPacket(isV4, injectPort, pushStack);
       }
     }
   };

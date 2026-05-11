@@ -6,24 +6,6 @@
 
 namespace facebook::fboss::utility::mpls_dataplane_test {
 
-const char* name(MplsIpVersion ipVersion) {
-  switch (ipVersion) {
-    case MplsIpVersion::V4:
-      return "IPv4";
-    case MplsIpVersion::V6:
-      return "IPv6";
-  }
-}
-
-const char* name(MplsPacketInjectionType injectionType) {
-  switch (injectionType) {
-    case MplsPacketInjectionType::FrontPanel:
-      return "front-panel";
-    case MplsPacketInjectionType::Cpu:
-      return "cpu";
-  }
-}
-
 const char* name(MplsTrapPacketMechanism mechanism) {
   switch (mechanism) {
     case MplsTrapPacketMechanism::SrcPortAcl:

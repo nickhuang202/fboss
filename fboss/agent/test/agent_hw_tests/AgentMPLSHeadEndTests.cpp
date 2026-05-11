@@ -7,6 +7,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -26,8 +27,6 @@
 namespace {
 
 namespace mpls_test = facebook::fboss::utility::mpls_dataplane_test;
-using mpls_test::MplsIpVersion;
-using mpls_test::MplsPacketInjectionType;
 using mpls_test::MplsTrapPacketMechanism;
 
 const facebook::fboss::LabelForwardingAction::Label kSwapLabel{201};
@@ -79,19 +78,6 @@ folly::IPAddressV4 headEndIngressPacketDstIp() {
 template <>
 folly::IPAddressV6 headEndIngressPacketDstIp() {
   return folly::IPAddressV6{"2001::1"};
-}
-
-template <typename AddrT>
-MplsIpVersion headEndIpVersion();
-
-template <>
-MplsIpVersion headEndIpVersion<folly::IPAddressV4>() {
-  return MplsIpVersion::V4;
-}
-
-template <>
-MplsIpVersion headEndIpVersion<folly::IPAddressV6>() {
-  return MplsIpVersion::V6;
 }
 
 template <typename PortType>
@@ -308,18 +294,14 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
   template <typename AddrT>
   void sendIpIngressPacket(
       uint8_t ttlOrHopLimit,
-      MplsPacketInjectionType injectionType) {
+      std::optional<PortID> injectPort) {
     auto pkt = makeIpIngressPacket<AddrT>(ttlOrHopLimit);
-    switch (injectionType) {
-      case MplsPacketInjectionType::FrontPanel:
-        EXPECT_TRUE(
-            getAgentEnsemble()->ensureSendPacketOutOfPort(
-                std::move(pkt), ingressPort()));
-        break;
-      case MplsPacketInjectionType::Cpu:
-        EXPECT_TRUE(
-            getAgentEnsemble()->ensureSendPacketSwitched(std::move(pkt)));
-        break;
+    if (injectPort.has_value()) {
+      EXPECT_TRUE(
+          getAgentEnsemble()->ensureSendPacketOutOfPort(
+              std::move(pkt), *injectPort));
+    } else {
+      EXPECT_TRUE(getAgentEnsemble()->ensureSendPacketSwitched(std::move(pkt)));
     }
   }
 
@@ -364,31 +346,32 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
 
   template <typename AddrT>
   void verifyIp2MplsPushAndTrapPacket(
-      MplsPacketInjectionType injectionType,
+      std::optional<PortID> injectPort,
       const LabelForwardingAction::LabelStack& expectedPushStack) {
     auto mechanism = trapPacketMechanism();
+    constexpr bool isV4 = std::is_same_v<AddrT, folly::IPAddressV4>;
     BaseT::verifyMplsPushAndTrapPacket(
         "mpls-head-end-push-verifier",
-        headEndIpVersion<AddrT>(),
-        injectionType,
+        isV4,
+        injectPort,
         mechanism,
         expectedPushStack,
-        [this, injectionType](uint8_t ttlOrHopLimit) {
-          sendIpIngressPacket<AddrT>(ttlOrHopLimit, injectionType);
+        [this, injectPort](uint8_t ttlOrHopLimit) {
+          sendIpIngressPacket<AddrT>(ttlOrHopLimit, injectPort);
         });
   }
 
   void verifyIp2MplsPush(
       const LabelForwardingAction::LabelStack& expectedPushStack) {
-    constexpr std::array kInjectionTypes{
-        MplsPacketInjectionType::FrontPanel,
-        MplsPacketInjectionType::Cpu,
+    const std::array<std::optional<PortID>, 2> injectPorts{
+        std::nullopt,
+        std::optional<PortID>{ingressPort()},
     };
-    for (auto injectionType : kInjectionTypes) {
+    for (auto injectPort : injectPorts) {
       verifyIp2MplsPushAndTrapPacket<folly::IPAddressV4>(
-          injectionType, expectedPushStack);
+          injectPort, expectedPushStack);
       verifyIp2MplsPushAndTrapPacket<folly::IPAddressV6>(
-          injectionType, expectedPushStack);
+          injectPort, expectedPushStack);
     }
   }
 };
