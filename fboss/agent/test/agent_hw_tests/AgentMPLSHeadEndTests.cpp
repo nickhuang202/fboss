@@ -395,6 +395,19 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
 
 TYPED_TEST_SUITE(AgentMPLSHeadEndTest, MplsHeadEndPortTypes);
 
+// PushLabel verifies MPLS head-end PUSH behavior across:
+// - IPv4 and IPv6 IP packets injected into the switch.
+// - Front-panel and CPU-switched injection paths.
+// - Physical-port and single-port LAG nexthops.
+// - First-pass IP forwarding to prove the IP-to-MPLS route imposed a label.
+// - Trapped packet label-stack inspection:
+//   - If src-port ACL is supported, trap packets looped back from the egress
+//     port because those packets have already completed the PUSH pass.
+//   - Otherwise, use MPLS TTL expiry on the second pass: the looped packet
+//     routes again with router MAC, matches the pushed label, expires TTL, and
+//     reaches CPU through the MPLS TTL trap.
+// Note: the TTL-expiry fallback is needed because programming a simple "trap
+// MPLS packet to CPU" inSegEntry does not work and needs an SAI SDK fix.
 TYPED_TEST(AgentMPLSHeadEndTest, PushLabel) {
   auto setup = [this]() {
     this->setupStaticIp2MplsRoutePush(this->singlePushedLabelStack());
@@ -407,6 +420,9 @@ TYPED_TEST(AgentMPLSHeadEndTest, PushLabel) {
   this->verifyAcrossWarmBoots(setup, verify);
 }
 
+// PushMaxLabelStack verifies that head-end PUSH can impose the maximum label
+// depth reported by the ASIC for IP-to-MPLS routes and that the captured packet
+// carries the full stack in wire/top-first order.
 TYPED_TEST(AgentMPLSHeadEndTest, PushMaxLabelStack) {
   auto setup = [this]() {
     this->setupStaticIp2MplsRoutePush(this->maxPushedLabelStack());
