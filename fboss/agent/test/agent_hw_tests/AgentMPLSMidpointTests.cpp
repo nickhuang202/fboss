@@ -495,7 +495,7 @@ class AgentMPLSMidpointTest : public AgentHwTest {
 
 TYPED_TEST_SUITE(AgentMPLSMidpointTest, MplsMidpointPortTypes);
 
-// StaticMplsRoutePush verifies MPLS midpoint PUSH behavior across:
+// PushLabel verifies MPLS midpoint PUSH behavior across:
 // - IPv4 and IPv6 payloads carried inside the injected MPLS packet.
 // - Front-panel and CPU-switched injection paths.
 // - Physical-port and single-port LAG nexthops.
@@ -508,7 +508,7 @@ TYPED_TEST_SUITE(AgentMPLSMidpointTest, MplsMidpointPortTypes);
 //     reaches CPU through the MPLS TTL trap.
 // Note: the TTL-expiry fallback is needed because programming a simple "trap
 // MPLS packet to CPU" inSegEntry does not work and needs an SAI SDK fix.
-TYPED_TEST(AgentMPLSMidpointTest, StaticMplsRoutePush) {
+TYPED_TEST(AgentMPLSMidpointTest, PushLabel) {
   auto setup = [this]() {
     this->setupStaticMplsRoutePush(kSinglePushedLabelStack);
   };
@@ -533,10 +533,10 @@ TYPED_TEST(AgentMPLSMidpointTest, StaticMplsRoutePush) {
   this->verifyAcrossWarmBoots(setup, verify);
 }
 
-// StaticMplsRoutePushMaxLabelStack verifies that midpoint PUSH can impose the
-// maximum label depth reported by the ASIC and that the captured packet carries
-// the full stack in wire/top-first order.
-TYPED_TEST(AgentMPLSMidpointTest, StaticMplsRoutePushMaxLabelStack) {
+// PushMaxLabelStack verifies that midpoint PUSH can impose the maximum label
+// depth reported by the ASIC and that the captured packet carries the full
+// stack in wire/top-first order.
+TYPED_TEST(AgentMPLSMidpointTest, PushMaxLabelStack) {
   auto setup = [this]() {
     this->setupStaticMplsRoutePush(this->maxPushedLabelStack());
   };
