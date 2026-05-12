@@ -686,6 +686,9 @@ struct TGetUpdateGroupInfoRequest {
  */
 struct TGetUpdateGroupInfoResponse {
   1: list<TUpdateGroupInfo> update_groups;
+
+  /* Whether the update-group feature is enabled. */
+  2: bool enable_update_group;
 }
 
 /**
