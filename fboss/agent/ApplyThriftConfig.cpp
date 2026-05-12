@@ -4039,7 +4039,16 @@ std::shared_ptr<AclMap> ThriftConfigApplier::updateAclsImpl(
           if (aclNexthopHandler_) {
             aclNexthopHandler_->resolveActionNexthops(matchAction);
           }
-          if (!matchAction.getRedirectToNextHop().value().second.size()) {
+          bool hasTunnelRedirect = false;
+          for (const auto& nh : *redirectToNextHop->redirectNextHops()) {
+            if (nh.tunnelType().has_value() &&
+                nh.tunnelType().value() == TunnelType::IP_IN_IP_ENCAP) {
+              hasTunnelRedirect = true;
+              break;
+            }
+          }
+          if (!hasTunnelRedirect &&
+              !matchAction.getRedirectToNextHop().value().second.size()) {
             XLOG(DBG2)
                 << "Setting newly configured ACL as disabled since no nexthops are available";
             enableAcl = false;
