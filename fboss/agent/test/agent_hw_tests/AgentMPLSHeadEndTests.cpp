@@ -4,6 +4,7 @@
 #include <folly/Conv.h>
 #include <folly/IPAddressV4.h>
 #include <folly/IPAddressV6.h>
+#include <folly/logging/xlog.h>
 
 #include <array>
 #include <memory>
@@ -125,10 +126,8 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
     return maxPushedLabelStack(kMaxPushedLabelBase);
   }
 
-  template <typename AddrT>
-  std::unique_ptr<utility::EcmpSetupTargetedPorts<AddrT>> setupIpEcmpHelper()
-      const {
-    return std::make_unique<utility::EcmpSetupTargetedPorts<AddrT>>(
+  std::unique_ptr<utility::EcmpSetupTargetedPorts6> setupIpEcmpHelper() const {
+    return std::make_unique<utility::EcmpSetupTargetedPorts6>(
         getProgrammedState(), getSw()->needL2EntryForNeighbor());
   }
 
@@ -148,19 +147,25 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
       const LabelForwardingAction::LabelStack& pushStack) const {
     config.staticIp2MplsRoutes()->emplace_back();
     auto& route = config.staticIp2MplsRoutes()->back();
-    route.prefix() = headEndIp2MplsRoutePrefix<AddrT>().str();
+    auto prefix = headEndIp2MplsRoutePrefix<AddrT>().str();
+    route.prefix() = prefix;
 
-    auto helper = setupIpEcmpHelper<AddrT>();
+    auto helper = setupIpEcmpHelper();
     auto nhop = helper->nhop(egressPortDescriptor());
 
     NextHopThrift nextHopThrift;
-    nextHopThrift.address() = network::toBinaryAddress(nhop.ip);
+    CHECK(nhop.linkLocalNhopIp.has_value());
+    nextHopThrift.address() =
+        network::toBinaryAddress(folly::IPAddress(*nhop.linkLocalNhopIp));
     nextHopThrift.address()->ifName() =
         folly::to<std::string>("fboss", nhop.intf);
     nextHopThrift.mplsAction() =
         LabelForwardingAction(
             LabelForwardingAction::LabelForwardingType::PUSH, pushStack)
             .toThrift();
+    XLOG(INFO) << "MPLS head-end IP-to-MPLS route prefix " << prefix
+               << " uses link-local nexthop " << *nhop.linkLocalNhopIp
+               << " on interface " << nhop.intf;
     route.nexthops()->push_back(nextHopThrift);
   }
 
@@ -177,10 +182,15 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
     auto nhop = helper->nhop(std::move(nextHop));
 
     NextHopThrift nextHopThrift;
-    nextHopThrift.address() = network::toBinaryAddress(nhop.ip);
+    CHECK(nhop.linkLocalNhopIp.has_value());
+    nextHopThrift.address() =
+        network::toBinaryAddress(folly::IPAddress(*nhop.linkLocalNhopIp));
     nextHopThrift.address()->ifName() =
         folly::to<std::string>("fboss", nhop.intf);
     nextHopThrift.mplsAction() = action.toThrift();
+    XLOG(INFO) << "MPLS head-end trap MPLS route ingress label "
+               << ingressLabel.value() << " uses link-local nexthop "
+               << *nhop.linkLocalNhopIp << " on interface " << nhop.intf;
     route.nexthops()->push_back(nextHopThrift);
   }
 
@@ -218,16 +228,17 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
     }
   }
 
-  template <typename AddrT>
   void resolveIpNextHopForPortWithMac(
       const PortDescriptor& nextHop,
       folly::MacAddress nextHopMac) {
     this->applyNewState(
         [this, nextHop, nextHopMac](const std::shared_ptr<SwitchState>& state) {
-          utility::EcmpSetupTargetedPorts<AddrT> helper(
+          utility::EcmpSetupTargetedPorts6 helper(
               state, getSw()->needL2EntryForNeighbor(), nextHopMac);
           return helper.resolveNextHops(
-              state, boost::container::flat_set<PortDescriptor>{nextHop});
+              state,
+              boost::container::flat_set<PortDescriptor>{nextHop},
+              true /* useLinkLocal */);
         },
         "resolve head-end IP nexthop with explicit MAC");
   }
@@ -242,7 +253,9 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
           auto helper = MplsEcmpSetupHelper(
               state, getSw()->needL2EntryForNeighbor(), topLabel, actionType);
           return helper.resolveNextHops(
-              state, boost::container::flat_set<PortDescriptor>{nextHop});
+              state,
+              boost::container::flat_set<PortDescriptor>{nextHop},
+              true /* useLinkLocal */);
         },
         "resolve head-end MPLS nexthop");
   }
@@ -314,7 +327,7 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
     configureTrapPacketMechanism(config, mechanism, pushStack);
     applyConfigAndEnableTrunks(config);
 
-    resolveIpNextHopForPortWithMac<AddrT>(egressPortDescriptor(), routerMac());
+    resolveIpNextHopForPortWithMac(egressPortDescriptor(), routerMac());
     if (mechanism == MplsTrapPacketMechanism::TtlExpiry) {
       resolveMplsNextHopForPort(
           PortDescriptor(secondPassEgressPort()),
@@ -332,10 +345,7 @@ class AgentMPLSHeadEndTest : public AgentMPLSDataplaneTest<PortType> {
     configureTrapPacketMechanism(config, mechanism, pushStack);
     applyConfigAndEnableTrunks(config);
 
-    resolveIpNextHopForPortWithMac<folly::IPAddressV4>(
-        egressPortDescriptor(), routerMac());
-    resolveIpNextHopForPortWithMac<folly::IPAddressV6>(
-        egressPortDescriptor(), routerMac());
+    resolveIpNextHopForPortWithMac(egressPortDescriptor(), routerMac());
     if (mechanism == MplsTrapPacketMechanism::TtlExpiry) {
       resolveMplsNextHopForPort(
           PortDescriptor(secondPassEgressPort()),
