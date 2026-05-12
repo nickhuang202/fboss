@@ -202,7 +202,7 @@ struct StateDeltaApplication {
 }
 
 enum TunnelType {
-  IP_IN_IP = 0, // Decap
+  IP_IN_IP_DECAP = 0,
   SRV6_ENCAP = 1,
   IP_IN_IP_ENCAP = 2,
 }

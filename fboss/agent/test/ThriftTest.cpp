@@ -1810,7 +1810,7 @@ TEST_F(ThriftTest, addUnicastRoutesRejectsSrv6WithInvalidTunnelType) {
     nh.address() = toBinaryAddress(IPAddress(nhopAddr));
     nh.srv6SegmentList() = {toBinaryAddress(IPAddress("2001:db8::1"))};
     nh.tunnelId() = "tunnel1";
-    nh.tunnelType() = TunnelType::IP_IN_IP;
+    nh.tunnelType() = TunnelType::IP_IN_IP_DECAP;
     route->nextHops() = {nh};
     EXPECT_THROW(
         handler.addUnicastRoute(bgpClient, std::move(route)), FbossError);

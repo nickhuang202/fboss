@@ -91,7 +91,7 @@ class AgentIpInIpTunnelTest : public AgentHwTest {
     // in brcm-sai: masks are not supported
     tunnel.dstIp() = dstIp;
     tunnel.tunnelTermType() = cfg::TunnelTerminationType::P2MP;
-    tunnel.tunnelType() = TunnelType::IP_IN_IP;
+    tunnel.tunnelType() = TunnelType::IP_IN_IP_DECAP;
     tunnel.ttlMode() = cfg::TunnelMode::PIPE;
     tunnel.dscpMode() = asic->getTunnelDscpMode();
     tunnel.ecnMode() = cfg::TunnelMode::PIPE;

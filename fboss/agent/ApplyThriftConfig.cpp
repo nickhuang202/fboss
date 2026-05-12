@@ -6438,7 +6438,7 @@ shared_ptr<IpTunnel> ThriftConfigApplier::updateIpInIpTunnel(
 shared_ptr<IpTunnel> ThriftConfigApplier::createIpInIpTunnel(
     const cfg::IpInIpTunnel& config) {
   auto tunnel = make_shared<IpTunnel>(*config.ipInIpTunnelId());
-  tunnel->setType(TunnelType::IP_IN_IP);
+  tunnel->setType(TunnelType::IP_IN_IP_DECAP);
   if (config.tunnelType().has_value()) {
     tunnel->setType(*config.tunnelType());
   }
