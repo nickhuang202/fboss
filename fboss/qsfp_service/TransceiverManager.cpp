@@ -2996,52 +2996,55 @@ std::string TransceiverManager::xphyWarmBootStateDirectory() const {
       FLAGS_qsfp_service_volatile_dir, "/", kPhyStateKey);
 }
 
-void TransceiverManager::setWarmBootState(
-    const folly::dynamic& phyWarmbootState) {
-  // Store necessary information of qsfp_service state into the warmboot state
-  // file. This can be the lane id vector of each port from PhyManager or
-  // transceiver info or the last config applied timestamp from agent
-  folly::dynamic qsfpServiceState = folly::dynamic::object;
+/* static */ void TransceiverManager::writeWarmBootState(
+    const folly::dynamic* phyWarmbootState,
+    const ConfigAppliedInfo& configInfo,
+    std::string& cachedState,
+    const std::string& fileName) {
   steady_clock::time_point begin = steady_clock::now();
-  // If phyManager_ is set in TransceiverManager, then we know it's not set in
-  // PortManager.
+  folly::dynamic qsfpServiceState = folly::dynamic::object;
 
-  if (phyManager_) {
-    qsfpServiceState[kPhyStateKey] = phyManager_->getWarmbootState();
-  } else if (!phyWarmbootState.isNull()) {
-    qsfpServiceState[kPhyStateKey] = phyWarmbootState;
+  if (phyWarmbootState) {
+    qsfpServiceState[kPhyStateKey] = *phyWarmbootState;
   }
 
-  folly::dynamic agentConfigAppliedWbState = folly::dynamic::object;
-  agentConfigAppliedWbState
-      [TransceiverManager::kAgentConfigLastAppliedInMsKey] =
-          *configAppliedInfo_.lastAppliedInMs();
-  if (auto lastAgentColdBootTime =
-          configAppliedInfo_.lastColdbootAppliedInMs()) {
-    agentConfigAppliedWbState
-        [TransceiverManager::kAgentConfigLastColdbootAppliedInMsKey] =
-            *lastAgentColdBootTime;
+  folly::dynamic configState = folly::dynamic::object;
+  configState[kAgentConfigLastAppliedInMsKey] =
+      *configInfo.lastAppliedInMs();
+  if (auto lastColdboot = configInfo.lastColdbootAppliedInMs()) {
+    configState[kAgentConfigLastColdbootAppliedInMsKey] = *lastColdboot;
   }
-  qsfpServiceState[TransceiverManager::kAgentConfigAppliedInfoStateKey] =
-      agentConfigAppliedWbState;
+  qsfpServiceState[kAgentConfigAppliedInfoStateKey] = configState;
 
   std::string currentState = folly::toPrettyJson(qsfpServiceState);
-  // If there is a state change, write it to the warm boot state file.
-  if (qsfpServiceWarmbootState_ != currentState) {
-    // Update the warmboot state
-    qsfpServiceWarmbootState_ = currentState;
+  if (cachedState != currentState) {
+    cachedState = std::move(currentState);
 
-    steady_clock::time_point getWarmbootState = steady_clock::now();
+    steady_clock::time_point assembled = steady_clock::now();
     XLOG(INFO)
-        << "Finish updating warm boot state. Time: "
-        << duration_cast<duration<float>>(getWarmbootState - begin).count();
-    folly::writeFile(
-        qsfpServiceWarmbootState_, warmBootStateFileName().c_str());
-    steady_clock::time_point serializeState = steady_clock::now();
+        << "Finish assembling warm boot state. Time: "
+        << duration_cast<duration<float>>(assembled - begin).count();
+    folly::writeFile(cachedState, fileName.c_str());
+    steady_clock::time_point written = steady_clock::now();
     XLOG(INFO) << "Finish writing warm boot state to file. Time: "
-               << duration_cast<duration<float>>(
-                      serializeState - getWarmbootState)
-                      .count();
+               << duration_cast<duration<float>>(written - assembled).count();
+  }
+}
+
+void TransceiverManager::setWarmBootState() {
+  if (phyManager_) {
+    folly::dynamic phyState = phyManager_->getWarmbootState();
+    writeWarmBootState(
+        &phyState,
+        configAppliedInfo_,
+        qsfpServiceWarmbootState_,
+        warmBootStateFileName());
+  } else {
+    writeWarmBootState(
+        nullptr,
+        configAppliedInfo_,
+        qsfpServiceWarmbootState_,
+        warmBootStateFileName());
   }
 }
 
