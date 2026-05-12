@@ -135,14 +135,7 @@ TunnelSaiId SaiTunnelManager::addTunnel(
         SAI_TUNNEL_DECAP_ECN_MODE_STANDARD,
         swTunnel->getSrcIP(),
         getSaiTtlMode(swTunnel->getTTLMode()),
-        getSaiDscpMode(swTunnel->getDscpMode())
-#if defined(TAJO_SDK_VERSION_25_11_4210)
-            ,
-        SAI_TUNNEL_PEER_MODE_P2P,
-        swTunnel->getDstIP(),
-        getSaiEncapEcnMode(swTunnel->getEcnMode())
-#endif
-    };
+        getSaiDscpMode(swTunnel->getDscpMode())};
     tunnelHandle->tunnel = tunnelStore.setObject(k1, k1);
     handles_[swTunnel->getID()] = std::move(tunnelHandle);
   } else {
@@ -155,14 +148,7 @@ TunnelSaiId SaiTunnelManager::addTunnel(
         getSaiDecapEcnMode(swTunnel->getEcnMode()),
         folly::IPAddress("0.0.0.0"),
         SAI_TUNNEL_TTL_MODE_UNIFORM_MODEL,
-        SAI_TUNNEL_DSCP_MODE_UNIFORM_MODEL
-#if defined(TAJO_SDK_VERSION_25_11_4210)
-        ,
-        SAI_TUNNEL_PEER_MODE_P2MP,
-        folly::IPAddress("0.0.0.0"),
-        SAI_TUNNEL_ENCAP_ECN_MODE_STANDARD
-#endif
-    };
+        SAI_TUNNEL_DSCP_MODE_UNIFORM_MODEL};
     tunnelHandle->tunnel = tunnelStore.setObject(k1, k1);
     if (swTunnel->getTunnelTermType() == cfg::TunnelTerminationType::P2MP) {
       tunnelHandle->tunnelTerm =
