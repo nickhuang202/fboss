@@ -1311,6 +1311,13 @@ service TBgpService extends fb303.FacebookService {
   list<TPeerEgressStats> getPeerEgressStats();
 
   /**
+   * Get detailed information about all active update groups.
+   */
+  TGetUpdateGroupInfoResponse getUpdateGroupInfo(
+    1: TGetUpdateGroupInfoRequest request,
+  );
+
+  /**
    * Get local config information
    */
   TBgpLocalConfig getBgpLocalConfig();
