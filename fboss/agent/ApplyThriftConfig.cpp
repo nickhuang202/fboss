@@ -6290,7 +6290,8 @@ ThriftConfigApplier::createMirrorOnDropReport(
       utility::getMacForFirstInterfaceWithPorts(new_, *modSwitchId).toString(),
       *config->modEventToConfigMap(),
       *config->agingGroupAgingIntervalUsecs(),
-      config->samplingRate().to_optional());
+      config->samplingRate().to_optional(),
+      config->dropPacketRateThreshold().to_optional());
 }
 
 std::shared_ptr<MirrorOnDropReport>

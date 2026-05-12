@@ -399,6 +399,8 @@ struct MirrorOnDropReportFields {
   18: optional switch_config.PortDescriptor resolvedEgressPort;
   // Optional sampling rate for MOD packets
   19: optional i32 samplingRate;
+  // Optional packets-per-second rate cap for drop report generation
+  20: optional i32 dropPacketRateThreshold;
 }
 
 struct ControlPlaneFields {
