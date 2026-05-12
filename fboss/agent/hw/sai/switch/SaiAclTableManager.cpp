@@ -1467,6 +1467,7 @@ AclEntrySaiId SaiAclTableManager::addAclEntry(
       userDefinedGroup4,
 #endif
       aclActionPacketAction,
+      std::nullopt, // actionRedirect
       aclActionCounter,
       aclActionSetTC,
       aclActionSetDSCP,
