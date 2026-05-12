@@ -6,14 +6,15 @@
 
 namespace facebook::fboss {
 
-// XGS (Tomahawk5, Tomahawk6) MirrorOnDrop Strategy implementation.
+// Tajo (Yuba=gibraltar, G202X=graphene200) MirrorOnDrop Strategy.
 //
-// XGS MirrorOnDrop format:
-//   - Tunnel-based MirrorDestination with srcIp.
-//   - IPFIX/PSAMP wire format for the captured packet.
-//   - Drop reason codes defined in BCM SDK (e.g. 0x1A = L3 destination
-//     discard, 0x10 = ingress FP/ACL drop, 0x03 = egress port drop).
-class XgsMirrorOnDropImpl : public MirrorOnDropImpl {
+// Wire format observed in the MoD sample packet capture:
+//   Eth / IPv6 / UDP / Tajo proprietary header (28B) / inner Eth /
+//   inner IPv6 / inner transport
+//
+// Drop reason codes are TBD until Tajo publishes them; placeholders here
+// will cause all reason-based test assertions to degenerate to 0x00==0x00.
+class TajoMirrorOnDropImpl : public MirrorOnDropImpl {
  public:
   cfg::MirrorOnDropReport makeReport(
       const std::string& name,

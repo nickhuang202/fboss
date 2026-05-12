@@ -127,6 +127,7 @@ add_library(agent_hw_test_src
   fboss/agent/test/agent_hw_tests/AgentMirrorOnDropDnxTests.cpp
   fboss/agent/test/agent_hw_tests/AgentMirrorOnDropStatelessTest.cpp
   fboss/agent/test/agent_hw_tests/AgentMirrorOnDropStatelessTests.cpp
+  fboss/agent/test/agent_hw_tests/AgentMirrorOnDropTajoImpl.cpp
   fboss/agent/test/agent_hw_tests/AgentMirrorOnDropTestBase.cpp
   fboss/agent/test/agent_hw_tests/AgentMirrorOnDropXgsImpl.cpp
   fboss/agent/test/agent_hw_tests/AgentMirroringTests.cpp
