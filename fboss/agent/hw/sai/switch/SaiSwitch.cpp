@@ -5118,6 +5118,7 @@ std::string SaiSwitch::listObjects(
                 SAI_OBJECT_TYPE_TAM_EVENT_AGING_GROUP));
 #endif
         objTypes.push_back(SAI_OBJECT_TYPE_TAM_EVENT);
+        objTypes.push_back(SAI_OBJECT_TYPE_TAM_EVENT_THRESHOLD);
         objTypes.push_back(SAI_OBJECT_TYPE_TAM);
         break;
       case HwObjectType::LABEL_ENTRY:
