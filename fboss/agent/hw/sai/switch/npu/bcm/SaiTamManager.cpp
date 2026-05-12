@@ -231,7 +231,15 @@ std::string SaiTamManager::getDestMacWithOverride(
 std::shared_ptr<SaiTamReport> SaiTamManager::createTamReport(
     sai_int32_t reportType) {
   auto& reportStore = saiStore_->get<SaiTamReportTraits>();
-  auto reportTraits = SaiTamReportTraits::CreateAttributes{reportType};
+  auto reportTraits = SaiTamReportTraits::CreateAttributes{
+      reportType
+#if SAI_API_VERSION >= SAI_VERSION(1, 16, 0)
+      ,
+      std::nullopt,
+      std::nullopt,
+      std::nullopt
+#endif
+  };
   return reportStore.setObject(reportTraits, reportTraits);
 }
 

@@ -705,6 +705,7 @@ class SaiStore {
       SaiObjectStore<SaiTamEventAgingGroupTraits>,
 #endif
       SaiObjectStore<SaiTamEventTraits>,
+      SaiObjectStore<SaiTamEventThresholdTraits>,
       SaiObjectStore<SaiTamTransportTraits>,
       SaiObjectStore<SaiTamCollectorTraits>,
       SaiObjectStore<SaiIpInIpTunnelTraits>,

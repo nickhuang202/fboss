@@ -52,8 +52,15 @@ SaiTamManager::SaiTamManager(
 
   // create report
   auto& reportStore = saiStore_->get<SaiTamReportTraits>();
-  auto reportTraits =
-      SaiTamReportTraits::CreateAttributes{SAI_TAM_REPORT_TYPE_VENDOR_EXTN};
+  auto reportTraits = SaiTamReportTraits::CreateAttributes{
+      SAI_TAM_REPORT_TYPE_VENDOR_EXTN
+#if SAI_API_VERSION >= SAI_VERSION(1, 16, 0)
+      ,
+      std::nullopt,
+      std::nullopt,
+      std::nullopt
+#endif
+  };
   auto report = reportStore.setObject(reportTraits, reportTraits);
 
   // create action
