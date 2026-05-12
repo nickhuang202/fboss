@@ -731,6 +731,11 @@ struct Subport {
   5: i32 holdTimerMultiplier = switch_config.DEFAULT_LACP_HOLD_TIMER_MULTIPLIER;
 }
 
+enum AggregatePortStatus {
+  UP = 0,
+  DOWN = 1,
+}
+
 struct AggregatePortFields {
   1: i16 id;
   2: string name;
@@ -752,6 +757,9 @@ struct AggregatePortFields {
   // Used as the upper bound to bring up the aggregate port
   11: optional i16 minimumLinkCountToUp;
   12: switch_config.AggregatePortType aggregatePortType = switch_config.AggregatePortType.LAG_PORT;
+  13: optional i64 configuredCapacityMbps;
+  14: optional i64 activeCapacityMbps;
+  15: optional AggregatePortStatus status;
 }
 
 struct TeFlowEntryFields {

@@ -10880,7 +10880,10 @@ std::pair<apache::thrift::ident::portToFwdState, ChildThriftPath<::std::map<::st
 std::pair<apache::thrift::ident::portToPartnerState, ChildThriftPath<::std::map<::std::int32_t, ::facebook::fboss::state::ParticipantInfo>, ::facebook::fboss::fsdb::FsdbOperStateRoot, Self>>,
 std::pair<apache::thrift::ident::interfaceIDs, ChildThriftPath<::std::vector<::std::int32_t>, ::facebook::fboss::fsdb::FsdbOperStateRoot, Self>>,
 std::pair<apache::thrift::ident::minimumLinkCountToUp, Child<::std::int16_t, ::apache::thrift::type_class::integral, ::apache::thrift::type::i16_t>>,
-std::pair<apache::thrift::ident::aggregatePortType, Child<::facebook::fboss::cfg::AggregatePortType, ::apache::thrift::type_class::enumeration, ::apache::thrift::type::enum_t<::facebook::fboss::cfg::AggregatePortType>>>>;
+std::pair<apache::thrift::ident::aggregatePortType, Child<::facebook::fboss::cfg::AggregatePortType, ::apache::thrift::type_class::enumeration, ::apache::thrift::type::enum_t<::facebook::fboss::cfg::AggregatePortType>>>,
+std::pair<apache::thrift::ident::configuredCapacityMbps, Child<::std::int64_t, ::apache::thrift::type_class::integral, ::apache::thrift::type::i64_t>>,
+std::pair<apache::thrift::ident::activeCapacityMbps, Child<::std::int64_t, ::apache::thrift::type_class::integral, ::apache::thrift::type::i64_t>>,
+std::pair<apache::thrift::ident::status, Child<::facebook::fboss::state::AggregatePortStatus, ::apache::thrift::type_class::enumeration, ::apache::thrift::type::enum_t<::facebook::fboss::state::AggregatePortStatus>>>>;
 
   template <typename Name>
   using TypeFor = typename Children::template type_of<Name>;
@@ -10898,6 +10901,9 @@ std::pair<apache::thrift::ident::aggregatePortType, Child<::facebook::fboss::cfg
     STRUCT_CHILD_GETTERS(interfaceIDs, 10);
     STRUCT_CHILD_GETTERS(minimumLinkCountToUp, 11);
     STRUCT_CHILD_GETTERS(aggregatePortType, 12);
+    STRUCT_CHILD_GETTERS(configuredCapacityMbps, 13);
+    STRUCT_CHILD_GETTERS(activeCapacityMbps, 14);
+    STRUCT_CHILD_GETTERS(status, 15);
 
   template <apache::thrift::FieldId __id>
   auto operator()(const std::integral_constant<apache::thrift::FieldId, __id>&) {
@@ -10913,6 +10919,9 @@ std::pair<apache::thrift::ident::aggregatePortType, Child<::facebook::fboss::cfg
     else if constexpr (__id == apache::thrift::FieldId{10}) { return interfaceIDs(); }
     else if constexpr (__id == apache::thrift::FieldId{11}) { return minimumLinkCountToUp(); }
     else if constexpr (__id == apache::thrift::FieldId{12}) { return aggregatePortType(); }
+    else if constexpr (__id == apache::thrift::FieldId{13}) { return configuredCapacityMbps(); }
+    else if constexpr (__id == apache::thrift::FieldId{14}) { return activeCapacityMbps(); }
+    else if constexpr (__id == apache::thrift::FieldId{15}) { return status(); }
   }
 };
 
