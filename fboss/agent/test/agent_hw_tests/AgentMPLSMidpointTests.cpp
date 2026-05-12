@@ -113,10 +113,15 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
     auto nhop = helper->nhop(std::move(nextHop));
 
     NextHopThrift nextHopThrift;
-    nextHopThrift.address() = network::toBinaryAddress(nhop.ip);
+    CHECK(nhop.linkLocalNhopIp.has_value());
+    nextHopThrift.address() =
+        network::toBinaryAddress(folly::IPAddress(*nhop.linkLocalNhopIp));
     nextHopThrift.address()->ifName() =
         folly::to<std::string>("fboss", nhop.intf);
     nextHopThrift.mplsAction() = action.toThrift();
+    XLOG(INFO) << "MPLS midpoint route ingress label " << ingressLabel.value()
+               << " uses link-local nexthop " << *nhop.linkLocalNhopIp
+               << " on interface " << nhop.intf;
     route.nexthops()->push_back(nextHopThrift);
   }
 
@@ -175,7 +180,9 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
           auto helper = EcmpSetupHelper(
               state, getSw()->needL2EntryForNeighbor(), topLabel, actionType);
           return helper.resolveNextHops(
-              state, boost::container::flat_set<PortDescriptor>{nextHop});
+              state,
+              boost::container::flat_set<PortDescriptor>{nextHop},
+              true /* useLinkLocal */);
         },
         "resolve midpoint MPLS nexthop");
   }
@@ -195,7 +202,9 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
           utility::EcmpSetupTargetedPorts6 helper(
               state, getSw()->needL2EntryForNeighbor(), nextHopMac);
           return helper.resolveNextHops(
-              state, boost::container::flat_set<PortDescriptor>{nextHop});
+              state,
+              boost::container::flat_set<PortDescriptor>{nextHop},
+              true /* useLinkLocal */);
         },
         "resolve midpoint MPLS nexthop with explicit MAC");
   }
@@ -208,7 +217,9 @@ class AgentMPLSMidpointTest : public AgentMPLSDataplaneTest<PortType> {
           utility::EcmpSetupTargetedPorts6 helper(
               state, getSw()->needL2EntryForNeighbor(), nextHopMac);
           return helper.unresolveNextHops(
-              state, boost::container::flat_set<PortDescriptor>{nextHop});
+              state,
+              boost::container::flat_set<PortDescriptor>{nextHop},
+              true /* useLinkLocal */);
         },
         "unresolve midpoint MPLS nexthop with explicit MAC");
   }
