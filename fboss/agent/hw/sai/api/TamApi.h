@@ -108,16 +108,21 @@ struct SaiTamReportTraits {
     using EnumType = sai_tam_report_attr_t;
     using Type = SaiAttribute<EnumType, SAI_TAM_REPORT_ATTR_TYPE, sai_int32_t>;
 #if SAI_API_VERSION >= SAI_VERSION(1, 16, 0)
-    using SampleRate =
-        SaiAttribute<EnumType, SAI_TAM_REPORT_ATTR_SAMPLE_RATE, sai_uint32_t>;
+    using SampleRate = SaiAttribute<
+        EnumType,
+        SAI_TAM_REPORT_ATTR_SAMPLE_RATE,
+        sai_uint32_t,
+        SaiIntDefault<sai_uint32_t>>;
     using MaxReportRate = SaiAttribute<
         EnumType,
         SAI_TAM_REPORT_ATTR_MAX_REPORT_RATE,
-        sai_uint64_t>;
+        sai_uint64_t,
+        SaiIntDefault<sai_uint64_t>>;
     using MaxReportBurst = SaiAttribute<
         EnumType,
         SAI_TAM_REPORT_ATTR_MAX_REPORT_BURST,
-        sai_uint64_t>;
+        sai_uint64_t,
+        SaiIntDefault<sai_uint64_t>>;
 #endif
   };
   using AdapterKey = TamReportSaiId;
