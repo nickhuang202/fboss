@@ -236,6 +236,7 @@ bool QsfpModule::upgradeFirmwareLocked(
       // @lint-ignore CLANGTIDY facebook-hte-BadCall-sleep
       sleep(5);
       updateQsfpData(true);
+      updateCachedTransceiverInfoLocked({});
     }
 
     // End of Firmware Upgrade
