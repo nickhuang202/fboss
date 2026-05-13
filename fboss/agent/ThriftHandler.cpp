@@ -3387,10 +3387,7 @@ void ThriftHandler::getFabricConnectivity(
   for (const auto& switchId : sw_->getSwitchInfoTable().getSwitchIDs()) {
     auto portId2FabricEndpoint =
         sw_->getHwSwitchThriftClientTable()->getFabricConnectivity(switchId);
-    CHECK(portId2FabricEndpoint.has_value());
-    auto state = sw_->getState();
-    for (const auto& [portName, fabricEndpoint] :
-         portId2FabricEndpoint.value()) {
+    for (const auto& [portName, fabricEndpoint] : portId2FabricEndpoint) {
       connectivity.insert({portName, fabricEndpoint});
     }
   }
