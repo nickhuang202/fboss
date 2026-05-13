@@ -321,7 +321,6 @@ hw_test_common_srcs = [
     "HwPortStressTests.cpp",
     "HwTest.cpp",
     "HwVlanTests.cpp",
-    "HwSplitAgentTest.cpp",
     "HwFlowletSwitchingTests.cpp",
 ]
 
@@ -421,7 +420,6 @@ cpp_library(
         "//fboss/agent/test/utils:queue_per_host_test_utils",
         "//fboss/agent/test/utils:stats_test_utils",
         "//fboss/agent/test/utils:udf_test_utils",
-        "//fboss/lib:common_utils",
         "//fboss/lib/phy:phy_utils",
         "//folly:network_address",
         "//folly:range",
@@ -444,7 +442,6 @@ cpp_library(
     exported_deps = [
         "fbsource//third-party/googletest:gtest",
         ":config_factory",
-        ":hw_packet_utils",
         ":hw_switch_ensemble_factory",
         ":hw_test_acl_utils",
         ":hw_test_ecmp_utils",
@@ -489,13 +486,11 @@ cpp_library(
         "//fboss/agent/test:ecmp_helper",
         "//fboss/agent/test:linkstate_toggler",
         "//fboss/agent/test:trunk_utils",
-        "//fboss/agent/test:utils",
         "//fboss/agent/test/utils:agent_hw_test_constants",
         "//fboss/agent/test/utils:pfc_test_utils",
         "//fboss/agent/test/utils:port_stats_test_utils",
         "//fboss/agent/test/utils:stats_test_utils",
         "//fboss/agent/test/utils:udf_test_utils",
-        "//fboss/lib:common_utils",
         "//fboss/lib/phy:phy_utils",
         "//folly:network_address",
         "//folly:range",
