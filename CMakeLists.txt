@@ -1230,6 +1230,7 @@ add_dependencies(fboss_other_services
 
 add_custom_target(fboss_platform_mapping_gen)
 add_dependencies(fboss_platform_mapping_gen
+  fboss-platform-mapping-gen.GEN_PY_EXE
   platform_mapping_gen_unit_test.GEN_PY_EXE
   platform_mapping_gen_no_regression_test.GEN_PY_EXE
 )
