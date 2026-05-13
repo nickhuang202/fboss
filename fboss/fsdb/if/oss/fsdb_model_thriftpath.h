@@ -6150,7 +6150,8 @@ std::pair<apache::thrift::ident::overrideEcmpSwitchingMode, Child<::facebook::fb
 std::pair<apache::thrift::ident::overrideNextHops, ChildThriftPath<::std::vector<::facebook::fboss::NextHopThrift>, ::facebook::fboss::fsdb::FsdbOperStateRoot, Self>>,
 std::pair<apache::thrift::ident::normalizedResolvedNextHopSetID, Child<::std::int64_t, ::apache::thrift::type_class::integral, ::apache::thrift::type::i64_t>>,
 std::pair<apache::thrift::ident::resolvedNextHopSetID, Child<::std::int64_t, ::apache::thrift::type_class::integral, ::apache::thrift::type::i64_t>>,
-std::pair<apache::thrift::ident::namedNextHopGroup, Child<::std::string, ::apache::thrift::type_class::string, ::apache::thrift::type::string_t>>>;
+std::pair<apache::thrift::ident::namedNextHopGroup, Child<::std::string, ::apache::thrift::type_class::string, ::apache::thrift::type::string_t>>,
+std::pair<apache::thrift::ident::clientNextHopSetID, Child<::std::int64_t, ::apache::thrift::type_class::integral, ::apache::thrift::type::i64_t>>>;
 
   template <typename Name>
   using TypeFor = typename Children::template type_of<Name>;
@@ -6166,6 +6167,7 @@ std::pair<apache::thrift::ident::namedNextHopGroup, Child<::std::string, ::apach
     STRUCT_CHILD_GETTERS(normalizedResolvedNextHopSetID, 8);
     STRUCT_CHILD_GETTERS(resolvedNextHopSetID, 9);
     STRUCT_CHILD_GETTERS(namedNextHopGroup, 10);
+    STRUCT_CHILD_GETTERS(clientNextHopSetID, 11);
 
   template <apache::thrift::FieldId __id>
   auto operator()(const std::integral_constant<apache::thrift::FieldId, __id>&) {
@@ -6179,6 +6181,7 @@ std::pair<apache::thrift::ident::namedNextHopGroup, Child<::std::string, ::apach
     else if constexpr (__id == apache::thrift::FieldId{8}) { return normalizedResolvedNextHopSetID(); }
     else if constexpr (__id == apache::thrift::FieldId{9}) { return resolvedNextHopSetID(); }
     else if constexpr (__id == apache::thrift::FieldId{10}) { return namedNextHopGroup(); }
+    else if constexpr (__id == apache::thrift::FieldId{11}) { return clientNextHopSetID(); }
   }
 };
 
