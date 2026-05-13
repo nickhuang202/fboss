@@ -255,6 +255,7 @@ cpp_library(
         "TestUtils.cpp",
     ],
     exported_deps = [
+        "fbsource//third-party/fmt:fmt",
         "fbsource//third-party/googletest:gmock",
         "fbsource//third-party/googletest:gtest",
         ":hw_test_handle",
@@ -521,6 +522,7 @@ cpp_library(
     ],
     undefined_symbols = True,
     exported_deps = [
+        "fbsource//third-party/fmt:fmt",
         "fbsource//third-party/googletest:gtest",
         ":utils",
         "//fboss/agent:agent_features",
@@ -550,6 +552,7 @@ cpp_library(
     ],
     undefined_symbols = True,
     exported_deps = [
+        "fbsource//third-party/fmt:fmt",
         "fbsource//third-party/googletest:gtest",
         ":agent_ensemble",
         "//fboss/agent:agent_features",
