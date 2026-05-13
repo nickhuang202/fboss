@@ -322,13 +322,6 @@ hw_test_common_srcs = [
     "HwTest.cpp",
     "HwVlanTests.cpp",
     "HwSplitAgentTest.cpp",
-    "HwTestFullHashedPacketsForSaiTomahawk.cpp",
-    "HwTestFullHashedPacketsForSaiTrident2.cpp",
-    "HwTestFullHashedPacketsForTomahawk.cpp",
-    "HwTestFullHashedPacketsForTomahawk3.cpp",
-    "HwTestFullHashedPacketsForTomahawk4.cpp",
-    "HwTestFullHashedPacketsForTrident2.cpp",
-    "HwHashPolarizationTestUtils.cpp",
     "HwFlowletSwitchingTests.cpp",
 ]
 
@@ -337,8 +330,6 @@ hw_test_asic_only_srcs = hw_test_common_srcs + [
 ]
 
 hw_dataplane_test_srcs = [
-    "dataplane_tests/HwHashConsistencyTest.cpp",
-    "dataplane_tests/HwHashPolarizationTests.cpp",
     "dataplane_tests/HwInPauseDiscardsTests.cpp",
     "dataplane_tests/HwL3Tests.cpp",
     "dataplane_tests/HwSflowTests.cpp",
@@ -460,6 +451,9 @@ cpp_library(
         ":hw_test_flowlet_switching_utils",
         ":hw_test_mirror_utils",
         ":hw_test_mpls_utils",
+        ":hw_test_neighbor_utils",
+        ":hw_test_packet_snooper",
+        ":hw_test_packet_trap_entry",
         ":hw_test_pfc_utils",
         ":hw_test_port_utils",
         ":hw_test_ptp_tc_utils",
@@ -472,6 +466,7 @@ cpp_library(
         ":load_balancer_utils",
         ":phy_capabilities",
         ":prod_config_factory",
+        "//fb303:service_data",
         "//fboss/agent:address_utils",
         "//fboss/agent:apply_thrift_config",
         "//fboss/agent:constants",
@@ -479,6 +474,7 @@ cpp_library(
         "//fboss/agent:gtest_defs",
         "//fboss/agent:hw_switch",
         "//fboss/agent:hwswitchcallback",
+        "//fboss/agent:packet",
         "//fboss/agent:platform_base",
         "//fboss/agent:switch_config-cpp2-types",
         "//fboss/agent:switchid_scope_resolver",
@@ -540,6 +536,7 @@ cpp_library(
         "//fboss/agent:hw_switch",
         "//fboss/agent:switch_config-cpp2-types",
         "//fboss/agent/hw/switch_asics:switch_asics",
+        "//fboss/agent/test:utils",
         "//fboss/agent/test/utils:dscp_marking_utils",
         "//fboss/agent/test/utils:load_balancer_test_utils",
         "//fboss/agent/test/utils:network_ai_qos_utils",
