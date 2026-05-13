@@ -1078,6 +1078,41 @@ foreach(cmakeFile ${cmakeFiles})
   INCLUDE(${cmakeFile})
 endforeach(cmakeFile)
 
+# Install headers and libraries for downstream consumers (e.g., BGP++).
+# Both blocks live here (after the SKIP_ALL_INSTALL macro override) so they
+# behave consistently: when SKIP_ALL_INSTALL is set, both are excluded.
+#
+# Header sources are installed per-subdirectory rather than via
+# install(DIRECTORY ${CMAKE_SOURCE_DIR}/fboss/ ...) because
+# ${CMAKE_SOURCE_DIR}/fboss is a symlink (github/fboss -> ..) and CMake
+# materialises that symlink at the destination, causing the subsequent
+# install of ${CMAKE_BINARY_DIR}/fboss/ to fail with "File exists".
+foreach(_fboss_header_subdir
+  agent cli common fsdb led_service lib mdio mka_service platform
+  qsfp_service thrift_cow thrift_visitors thriftpath_plugin)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/fboss/${_fboss_header_subdir}
+    DESTINATION include/fboss
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.tcc")
+endforeach()
+install(DIRECTORY ${CMAKE_BINARY_DIR}/fboss/
+  DESTINATION include/fboss
+  FILES_MATCHING PATTERN "*.h" PATTERN "*.tcc")
+
+install(TARGETS
+  nodebase address_utils radix_tree exponential_back_off
+  switch_config_cpp2 ctrl_cpp2 common_cpp2 fboss_cpp2
+  fboss_common_cpp2 fboss_error fboss_types
+  network_address_cpp2 mpls_cpp2
+  agent_stats_cpp2 hardware_stats_cpp2 mka_structs_cpp2
+  platform_config_cpp2 phy_cpp2 transceiver_cpp2
+  product_info_cpp2 optic_cpp2 prbs_cpp2 link_cpp2
+  cfgr_fboss_common_cpp2 asic_temp_cpp2
+  bcm_config_cpp2 asic_config_cpp2 asic_config_v2_cpp2
+  io_stats_cpp2
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+)
+
 add_custom_target(fboss_agent_benchmark_libs)
 add_dependencies(fboss_agent_benchmark_libs
   hw_flowlet_stats_collection_speed
