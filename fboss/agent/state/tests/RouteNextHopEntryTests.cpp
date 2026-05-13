@@ -1178,3 +1178,28 @@ TEST(RouteNextHopEntry, CostToUnicastRoutePreservesCost) {
   ASSERT_EQ(unicastRoute.nextHops()->size(), 1);
   EXPECT_EQ(unicastRoute.nextHops()->at(0).cost(), 42);
 }
+
+TEST(RouteNextHopEntry, ClientNextHopSetIDAccessors) {
+  RouteNextHopEntry entry(
+      RouteNextHopEntry::Action::DROP, kDefaultAdminDistance);
+
+  EXPECT_FALSE(entry.getClientNextHopSetID().has_value());
+
+  std::optional<NextHopSetID> id{NextHopSetID(42)};
+  entry.setClientNextHopSetID(id);
+  EXPECT_EQ(entry.getClientNextHopSetID(), NextHopSetID(42));
+
+  EXPECT_FALSE(entry.getResolvedNextHopSetID().has_value());
+  EXPECT_FALSE(entry.getNormalizedResolvedNextHopSetID().has_value());
+
+  RouteNextHopEntry roundTripped(
+      RouteNextHopEntry::Action::DROP, kDefaultAdminDistance);
+  roundTripped.fromThrift(entry.toThrift());
+  EXPECT_EQ(roundTripped.getClientNextHopSetID(), NextHopSetID(42));
+
+  std::optional<NextHopSetID> empty;
+  entry.setClientNextHopSetID(empty);
+  EXPECT_FALSE(entry.getClientNextHopSetID().has_value());
+
+  validateThriftStructNodeSerialization<RouteNextHopEntry>(roundTripped);
+}

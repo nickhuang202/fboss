@@ -133,6 +133,22 @@ class RouteNextHopEntry
     }
   }
 
+  const std::optional<NextHopSetID> getClientNextHopSetID() const {
+    if (auto nhopSetID = safe_cref<switch_state_tags::clientNextHopSetID>()) {
+      return NextHopSetID(nhopSetID->cref());
+    }
+    return std::nullopt;
+  }
+
+  void setClientNextHopSetID(std::optional<NextHopSetID>& nhopSetID) {
+    if (nhopSetID) {
+      ref<switch_state_tags::clientNextHopSetID>() =
+          static_cast<int64_t>(*nhopSetID);
+    } else {
+      ref<switch_state_tags::clientNextHopSetID>().reset();
+    }
+  }
+
   std::optional<std::string> getNamedNextHopGroup() const {
     if (auto name = safe_cref<switch_state_tags::namedNextHopGroup>()) {
       return name->cref();
