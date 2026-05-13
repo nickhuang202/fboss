@@ -287,6 +287,7 @@ cpp_library(
         "//fboss/agent:hw_switch_thrift_client_table",
         "//fboss/agent:hwswitch_matcher",
         "//fboss/agent:load_agent_config",
+        "//fboss/agent:loadbalancer_utils",
         "//fboss/agent:packet",
         "//fboss/agent:packet_stream_handler",
         "//fboss/agent:route_update_wrapper",
