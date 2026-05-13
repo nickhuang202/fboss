@@ -1203,3 +1203,20 @@ TEST(RouteNextHopEntry, ClientNextHopSetIDAccessors) {
 
   validateThriftStructNodeSerialization<RouteNextHopEntry>(roundTripped);
 }
+
+TEST(RouteNextHopEntry, ClientNextHopSetIDInEquality) {
+  RouteNextHopEntry a(RouteNextHopEntry::Action::DROP, kDefaultAdminDistance);
+  RouteNextHopEntry b(RouteNextHopEntry::Action::DROP, kDefaultAdminDistance);
+  EXPECT_EQ(a, b);
+
+  std::optional<NextHopSetID> id7{NextHopSetID(7)};
+  a.setClientNextHopSetID(id7);
+  EXPECT_NE(a, b);
+
+  b.setClientNextHopSetID(id7);
+  EXPECT_EQ(a, b);
+
+  std::optional<NextHopSetID> id8{NextHopSetID(8)};
+  b.setClientNextHopSetID(id8);
+  EXPECT_NE(a, b);
+}

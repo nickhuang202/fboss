@@ -249,7 +249,8 @@ bool operator==(const RouteNextHopEntry& a, const RouteNextHopEntry& b) {
           a.getOverrideNextHops() == b.getOverrideNextHops()) &&
       a.getNormalizedResolvedNextHopSetID() ==
       b.getNormalizedResolvedNextHopSetID() &&
-      a.getResolvedNextHopSetID() == b.getResolvedNextHopSetID();
+      a.getResolvedNextHopSetID() == b.getResolvedNextHopSetID() &&
+      a.getClientNextHopSetID() == b.getClientNextHopSetID();
 }
 
 bool operator<(const RouteNextHopEntry& a, const RouteNextHopEntry& b) {
