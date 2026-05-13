@@ -1562,13 +1562,6 @@
       "pmUnitName": "PSU",
       "sensors": [
         {
-          "__comment__": "Removed the thresholds to support both DC and AC PSUs",
-          "name": "PSU1_L_VIN",
-          "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/in1_input",
-          "type": 1,
-          "compute": "@/1000"
-        },
-        {
           "name": "PSU1_L_12V_MAIN_VOUT",
           "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/in2_input",
           "type": 1,
@@ -1668,6 +1661,18 @@
           "productSubVersion": 0,
           "sensors": [
             {
+              "name": "PSU1_L_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 305,
+                "maxAlarmVal": 305,
+                "minAlarmVal": 90,
+                "lowerCriticalVal": 90
+              },
+              "compute": "@/1000"
+            },
+            {
               "name": "PSU1_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/temp1_input",
               "type": 3,
@@ -1706,6 +1711,18 @@
           "productVersion": 0,
           "productSubVersion": 0,
           "sensors": [
+            {
+              "name": "PSU1_L_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 56,
+                "maxAlarmVal": 56,
+                "minAlarmVal": 42,
+                "lowerCriticalVal": 42
+              },
+              "compute": "@/1000"
+            },
             {
               "name": "PSU1_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/temp1_input",
@@ -1746,6 +1763,18 @@
           "productSubVersion": 0,
           "sensors": [
             {
+              "name": "PSU1_L_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 305,
+                "maxAlarmVal": 305,
+                "minAlarmVal": 90,
+                "lowerCriticalVal": 90
+              },
+              "compute": "@/1000"
+            },
+            {
               "name": "PSU1_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/temp1_input",
               "type": 3,
@@ -1785,6 +1814,18 @@
           "productSubVersion": 0,
           "sensors": [
             {
+              "name": "PSU1_L_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 56,
+                "maxAlarmVal": 56,
+                "minAlarmVal": 42,
+                "lowerCriticalVal": 42
+              },
+              "compute": "@/1000"
+            },
+            {
               "name": "PSU1_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/temp1_input",
               "type": 3,
@@ -1822,6 +1863,18 @@
           "productVersion": 0,
           "productSubVersion": 0,
           "sensors": [
+            {
+              "name": "PSU1_L_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 305,
+                "maxAlarmVal": 305,
+                "minAlarmVal": 90,
+                "lowerCriticalVal": 90
+              },
+              "compute": "@/1000"
+            },
             {
               "name": "PSU1_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_L_PMBUS/temp1_input",
@@ -1876,13 +1929,6 @@
       "slotPath": "/PDBRIGHT_SLOT@0/PSU_SLOT@0",
       "pmUnitName": "PSU",
       "sensors": [
-        {
-          "__comment__": "Removed the thresholds to support both DC and AC PSUs",
-          "name": "PSU2_R_VIN",
-          "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/in1_input",
-          "type": 1,
-          "compute": "@/1000"
-        },
         {
           "name": "PSU2_R_12V_MAIN_VOUT",
           "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/in2_input",
@@ -1983,6 +2029,18 @@
           "productSubVersion": 0,
           "sensors": [
             {
+              "name": "PSU2_R_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 305,
+                "maxAlarmVal": 305,
+                "minAlarmVal": 90,
+                "lowerCriticalVal": 90
+              },
+              "compute": "@/1000"
+            },
+            {
               "name": "PSU2_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/temp1_input",
               "type": 3,
@@ -2021,6 +2079,18 @@
           "productVersion": 0,
           "productSubVersion": 0,
           "sensors": [
+            {
+              "name": "PSU2_R_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 56,
+                "maxAlarmVal": 56,
+                "minAlarmVal": 42,
+                "lowerCriticalVal": 42
+              },
+              "compute": "@/1000"
+            },
             {
               "name": "PSU2_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/temp1_input",
@@ -2061,6 +2131,18 @@
           "productSubVersion": 0,
           "sensors": [
             {
+              "name": "PSU2_R_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 305,
+                "maxAlarmVal": 305,
+                "minAlarmVal": 90,
+                "lowerCriticalVal": 90
+              },
+              "compute": "@/1000"
+            },
+            {
               "name": "PSU2_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/temp1_input",
               "type": 3,
@@ -2100,6 +2182,18 @@
           "productSubVersion": 0,
           "sensors": [
             {
+              "name": "PSU2_R_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 56,
+                "maxAlarmVal": 56,
+                "minAlarmVal": 42,
+                "lowerCriticalVal": 42
+              },
+              "compute": "@/1000"
+            },
+            {
               "name": "PSU2_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/temp1_input",
               "type": 3,
@@ -2137,6 +2231,18 @@
           "productVersion": 0,
           "productSubVersion": 0,
           "sensors": [
+            {
+              "name": "PSU2_R_VIN",
+              "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/in1_input",
+              "type": 1,
+              "thresholds": {
+                "upperCriticalVal": 305,
+                "maxAlarmVal": 305,
+                "minAlarmVal": 90,
+                "lowerCriticalVal": 90
+              },
+              "compute": "@/1000"
+            },
             {
               "name": "PSU2_TEMP1",
               "sysfsPath": "/run/devmap/sensors/PDB_R_PMBUS/temp1_input",
