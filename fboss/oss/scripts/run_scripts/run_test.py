@@ -1691,6 +1691,14 @@ class BenchmarkTestRunner:
             default=None,
         )
 
+    def _build_keys_to_try(self, platform_key):
+        keys_to_try = [platform_key]
+        for suffix in ("/mono", "/multi_switch"):
+            if platform_key.endswith(suffix):
+                keys_to_try.append(platform_key[: -len(suffix)])
+                break
+        return keys_to_try
+
     def _load_known_bad_test_regexes(self, platform_key):
         """Load known bad test regexes from sai_bench config JSON.
         Args:
@@ -1699,19 +1707,26 @@ class BenchmarkTestRunner:
         Returns:
             List of regex pattern strings for known bad tests
         """
-        # Build keys to try: exact key + stripped version if it has a run_mode suffix
-        # Matches TestRunner._initialize_test_lists pattern (always exactly 1 or 2 keys)
-        keys_to_try = [platform_key]
-        for suffix in ("/mono", "/multi_switch"):
-            if platform_key.endswith(suffix):
-                keys_to_try.append(platform_key[: -len(suffix)])
-                break
-
         return TestRunner._get_test_regexes_from_file(
             self,
             file_path=SAI_BENCH_CONFIG,
             test_dict_key="known_bad_tests",
-            keys_to_try=keys_to_try,
+            keys_to_try=self._build_keys_to_try(platform_key),
+        )
+
+    def _load_unsupported_test_regexes(self, platform_key):
+        """Load unsupported test regexes from sai_bench config JSON.
+        Args:
+            platform_key: Platform key string (e.g., 'brcm/10.2.0.0_odp/tomahawk4')
+
+        Returns:
+            List of regex pattern strings for unsupported tests
+        """
+        return TestRunner._get_test_regexes_from_file(
+            self,
+            file_path=SAI_BENCH_CONFIG,
+            test_dict_key="unsupported_tests",
+            keys_to_try=self._build_keys_to_try(platform_key),
         )
 
     def _load_benchmark_thresholds(self):
@@ -2178,16 +2193,39 @@ class BenchmarkTestRunner:
             print(f"Pre-filtered {skipped_count} known bad benchmarks")
         return filtered, skipped_count
 
+    def _filter_unsupported(self, benchmarks, unsupported_regexes):
+        """Remove unsupported tests from the list before running.
+
+        Returns:
+            Tuple of (filtered list, skipped count).
+        """
+        if not unsupported_regexes:
+            return benchmarks, 0
+
+        filtered = []
+        for name in benchmarks:
+            if TestRunner._test_matches_any_regex(self, name, unsupported_regexes):
+                print(f"  >> SKIPPING (unsupported): {name}")
+            else:
+                filtered.append(name)
+        skipped_count = len(benchmarks) - len(filtered)
+        if skipped_count:
+            print(f"Pre-filtered {skipped_count} unsupported benchmarks")
+        return filtered, skipped_count
+
     def run_test(self, args):
         """Run benchmark tests."""
         known_bad_regexes = []
+        unsupported_regexes = []
         all_thresholds = {}
         platform_key = getattr(args, "skip_known_bad_tests", None)
         if platform_key:
             known_bad_regexes = self._load_known_bad_test_regexes(platform_key)
+            unsupported_regexes = self._load_unsupported_test_regexes(platform_key)
             all_thresholds = self._load_benchmark_thresholds()
             print(
-                f"Loaded {len(known_bad_regexes)} known bad test patterns "
+                f"Loaded {len(known_bad_regexes)} known bad test patterns, "
+                f"{len(unsupported_regexes)} unsupported test patterns, "
                 f"and {len(all_thresholds)} threshold configs for '{platform_key}'"
             )
 
@@ -2204,6 +2242,13 @@ class BenchmarkTestRunner:
 
         benchmarks_to_run = self._get_benchmarks_to_run(all_benchmarks, args)
         if not benchmarks_to_run:
+            return
+
+        benchmarks_to_run, unsupported_skipped = self._filter_unsupported(
+            benchmarks_to_run, unsupported_regexes
+        )
+        if not benchmarks_to_run:
+            print("No benchmarks to run after filtering unsupported")
             return
 
         benchmarks_to_run, skipped_count = self._filter_known_bad(
@@ -2228,7 +2273,7 @@ class BenchmarkTestRunner:
             )
             results.append(result)
 
-        self._write_results_and_summary(results, skipped_count)
+        self._write_results_and_summary(results, skipped_count + unsupported_skipped)
 
 
 if __name__ == "__main__":
