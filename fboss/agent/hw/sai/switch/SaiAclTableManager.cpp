@@ -420,6 +420,9 @@ SaiAclTableManager::cfgActionTypeListToSaiActionTypeList(
       case cfg::AclTableActionType::SET_USER_DEFINED_TRAP:
         saiActionType = SAI_ACL_ACTION_TYPE_SET_USER_TRAP_ID;
         break;
+      case cfg::AclTableActionType::REDIRECT:
+        saiActionType = SAI_ACL_ACTION_TYPE_REDIRECT;
+        break;
 #if SAI_API_VERSION >= SAI_VERSION(1, 14, 0)
       case cfg::AclTableActionType::SET_ARS_OBJECT:
         saiActionType = SAI_ACL_ACTION_TYPE_SET_ARS_OBJECT;

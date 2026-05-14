@@ -676,6 +676,7 @@ enum AclTableActionType {
   DISABLE_ARS_FORWARDING = 7,
   SET_ARS_OBJECT = 8,
   L3_SWITCH_CANCEL = 9,
+  REDIRECT = 10,
 }
 
 enum AclTableQualifier {
