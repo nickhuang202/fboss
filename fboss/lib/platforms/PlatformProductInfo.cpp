@@ -259,9 +259,6 @@ void PlatformProductInfo::initMode() {
         modelName.find("Saintpaul") == 0 || modelName.find("SAINTPAUL") == 0) {
       type_ = PlatformType::PLATFORM_SAINTPAUL;
     } else if (
-        modelName.find("M4052ACTM") == 0) {
-      type_ = PlatformType::PLATFORM_M4052ACTM;
-    } else if (
         modelName.find("M4062nhp") == 0 || modelName.find("M4062NHP") == 0) {
       type_ = PlatformType::PLATFORM_M4062NHP;
     } else if (
@@ -356,8 +353,6 @@ void PlatformProductInfo::initMode() {
       type_ = PlatformType::PLATFORM_YANGRA2;
     } else if (FLAGS_mode == "saintpaul") {
       type_ = PlatformType::PLATFORM_SAINTPAUL;
-    } else if (FLAGS_mode == "m4052actm") {
-      type_ = PlatformType::PLATFORM_M4052ACTM;
     } else if (FLAGS_mode == "m4062nhp") {
       type_ = PlatformType::PLATFORM_M4062NHP;
     } else if (FLAGS_mode == "m4061clsc") {
