@@ -16,6 +16,7 @@
 #include "fboss/lib/bsp/janga800bic/Janga800bicBspPlatformMapping.h"
 #include "fboss/lib/bsp/ladakh800bcls/Ladakh800bclsBspPlatformMapping.h"
 #include "fboss/lib/bsp/leh800bcls/Leh800bclsBspPlatformMapping.h"
+#include "fboss/lib/bsp/m4052acti/M4052ACTIBspPlatformMapping.h"
 #include "fboss/lib/bsp/m4052actm/M4052ACTMBspPlatformMapping.h"
 #include "fboss/lib/bsp/m4062nhp/M4062nhpBspPlatformMapping.h"
 #include "fboss/lib/bsp/meru800bfa/Meru800bfaBspPlatformMapping.h"
@@ -121,6 +122,11 @@ std::unique_ptr<WedgeManager> createWedgeManager(
       return createBspWedgeManager<
           Icecube800bcBspPlatformMapping,
           PlatformType::PLATFORM_ICECUBE800BC>(
+          platformMapping, qsfpServiceThreads);
+    case PlatformType::PLATFORM_M4052ACTI:
+      return createBspWedgeManager<
+          M4052ACTIBspPlatformMapping,
+          PlatformType::PLATFORM_M4052ACTI>(
           platformMapping, qsfpServiceThreads);
     case PlatformType::PLATFORM_M4052ACTM:
       return createBspWedgeManager<
