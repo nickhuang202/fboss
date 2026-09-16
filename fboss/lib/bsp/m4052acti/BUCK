@@ -8,10 +8,10 @@ cpp_library(
     # -> cycle. Keep the acyclic :bsp_platform_mapping_lib dep.
     name = "m4052acti_bsp",
     srcs = [
-        "m4052ACTIBspPlatformMapping.cpp",
+        "M4052ACTIBspPlatformMapping.cpp",
     ],
     headers = [
-        "m4052ACTIBspPlatformMapping.h",
+        "M4052ACTIBspPlatformMapping.h",
     ],
     deps = ["//thrift/lib/cpp2/protocol:protocol"],
     exported_deps = [
