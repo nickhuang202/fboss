@@ -189,8 +189,9 @@ GenericSaiYangraPlatform::getSaiProfileVendorExtensionValues() const {
 
   // Independent module mode: transceiver programming is handled by an
   // external component (qsfp_service) while the ASIC firmware acts as a
-  // relay. Value 1 = INDEPENDENT_MODULE_MODE.
-  kv_map.insert(std::make_pair("SAI_INDEPENDENT_MODULE_MODE", "1"));
+  // relay. Value 2 = STANDALONE_MODULE_MODE (no FW I2C connectivity on this
+  // Spectrum 6 part, so INDEPENDENT mode 1 is rejected by FW).
+  kv_map.insert(std::make_pair("SAI_INDEPENDENT_MODULE_MODE", "2"));
 
   // case #1050017
   // When port is transmitting traffic with TC2 and TC7, and PFC XOFF is
