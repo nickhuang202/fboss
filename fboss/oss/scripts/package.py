@@ -18,12 +18,14 @@ if TYPE_CHECKING or __package__:
     from .platform_configs_utils import (
         get_forwarding_stack_config_paths,
         get_platform_descriptor_paths,
+        get_platform_stack_config_paths,
     )
 else:
     import component_version
     from platform_configs_utils import (
         get_forwarding_stack_config_paths,
         get_platform_descriptor_paths,
+        get_platform_stack_config_paths,
     )
 
 SRC_DIR = pathlib.Path("/var/FBOSS/fboss")
@@ -372,7 +374,10 @@ def _build_target(target: str, build_dir: pathlib.Path):
         }
     elif target == "platform-stack":
         bins = PLATFORM_BINARIES
-        extras = PLATFORM_EXTRA
+        extras = {
+            **PLATFORM_EXTRA,
+            **get_platform_stack_config_paths(PLATFORM_CONFIGS_DIR),
+        }
         libs = PLATFORM_LIBS + COMMON_LIBS
         test_bins = PLATFORM_TEST_BINARIES
         test_extras = PLATFORM_TEST_EXTRA

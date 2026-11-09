@@ -17,12 +17,14 @@ if TYPE_CHECKING or __package__:
     from .platform_configs_utils import (
         copy_forwarding_stack_configs,
         copy_platform_descriptors,
+        copy_platform_stack_configs,
     )
 else:
     import component_version
     from platform_configs_utils import (
         copy_forwarding_stack_configs,
         copy_platform_descriptors,
+        copy_platform_stack_configs,
     )
 
 OPT_ARG_SCRATCH_PATH = "--scratch-path"
@@ -397,6 +399,10 @@ class PackageFboss:
             pathlib.Path(tmp_dir_name),
         )
         copy_forwarding_stack_configs(
+            pathlib.Path(self.get_fboss_subdirectory("fboss/configs/platforms")),
+            pathlib.Path(tmp_dir_name),
+        )
+        copy_platform_stack_configs(
             pathlib.Path(self.get_fboss_subdirectory("fboss/configs/platforms")),
             pathlib.Path(tmp_dir_name),
         )

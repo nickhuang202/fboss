@@ -1,0 +1,13 @@
+{
+  "platformType": 58,
+  "productNamePrefixes": [
+    "M4061ACTL",
+    "M4061ACTI"
+  ],
+  "modeNames": [
+    "m4061actl",
+    "m4061acti"
+  ],
+  "asicType": 13,
+  "numSwitchAsics": 1
+}

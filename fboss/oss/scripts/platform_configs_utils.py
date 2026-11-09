@@ -23,6 +23,8 @@ PLATFORM_DESCRIPTOR_ARCHIVE_ROOT = pathlib.PurePosixPath(
 )
 PLATFORM_CONFIGS_ARCHIVE_ROOT = pathlib.PurePosixPath("share/configs/platforms")
 
+PLATFORM_STACK_ARCHIVE_ROOT = pathlib.PurePosixPath("share/configs/platforms")
+
 
 def get_platform_descriptor_paths(
     platform_configs_dir: pathlib.Path,
@@ -83,6 +85,27 @@ def copy_forwarding_stack_configs(
     platform_configs_dir: pathlib.Path, package_root: pathlib.Path
 ) -> None:
     _copy_paths(get_forwarding_stack_config_paths(platform_configs_dir), package_root)
+
+
+def get_platform_stack_config_paths(
+    platform_configs_dir: pathlib.Path,
+) -> dict[pathlib.Path, str]:
+    # Every per-platform platform_stack config JSON (platform_manager.json,
+    # sensor_service.json, fan_service.json, led_manager.json, bsp_tests.json, ...)
+    # shipped under share/configs/platforms/<vendor>/<platform>/platform_stack/.
+    paths = {}
+    for source in sorted(
+        platform_configs_dir.glob("*/*/platform_stack/*.json")
+    ):
+        relative_path = source.relative_to(platform_configs_dir)
+        paths[source] = str(PLATFORM_STACK_ARCHIVE_ROOT / relative_path)
+    return paths
+
+
+def copy_platform_stack_configs(
+    platform_configs_dir: pathlib.Path, package_root: pathlib.Path
+) -> None:
+    _copy_paths(get_platform_stack_config_paths(platform_configs_dir), package_root)
 
 
 def _copy_paths(paths: dict[pathlib.Path, str], package_root: pathlib.Path) -> None:
